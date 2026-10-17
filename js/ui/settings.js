@@ -87,8 +87,9 @@ export function mountSettings(view) {
           h(
             'div.grow',
             h('div', `曲 ${store.state.tracks.length} 曲 ・ ${formatBytes(used)}`),
-            h('div.desc', est.usage != null ? `このアプリが使っている容量：約 ${formatBytes(usage)}${quota ? `（使える目安 ${formatBytes(quota)}）` : ''}` : ''),
-            quota ? h('div.meter', h('i', { style: { width: `${Math.min(100, (usage / quota) * 100).toFixed(1)}%` } })) : null,
+            h('div.desc', `このアプリが使っている容量：約 ${formatBytes(usage)}`),
+            // Safari の「上限」は iPhone 全体の容量から決まる数字で、今の空き容量ではない（64 GB の iPhone なら 38.4 GB）
+            quota ? h('div.desc', `Safari が決めた上限：${formatBytes(quota)}（iPhone の空き容量のほうが少なければ、空きまでしか入りません）`) : null,
           ),
         ),
         h(
