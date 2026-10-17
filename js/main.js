@@ -5,7 +5,7 @@ import * as player from './player.js';
 import { requestPersist } from './db.js';
 import { mountLibrary, resetToRoot, back as libraryBack } from './ui/library.js';
 import { mountNowPlaying } from './ui/nowplaying.js';
-import { mountSearch } from './ui/search.js';
+import { mountBrowser } from './ui/browser.js';
 import { mountSettings } from './ui/settings.js';
 import { runImport } from './ui/common.js';
 import { installFeel } from './ui/feel.js';
@@ -23,12 +23,12 @@ async function boot() {
 
   const views = {
     library: h('div.view'),
-    search: h('div.view'),
+    browser: h('div.view'),
     settings: h('div.view'),
   };
   const tabs = [
     ['library', 'ライブラリ', 'library'],
-    ['search', '検索', 'search'],
+    ['browser', 'ブラウザ', 'globe'],
     ['settings', '設定', 'gear'],
   ];
   let current = 'library';
@@ -44,7 +44,6 @@ async function boot() {
           if (current === key) {
             if (key === 'library') resetToRoot();
             else views[key].scrollTo({ top: 0, behavior: 'smooth' });
-            if (key === 'search') searchApi.focus();
             return;
           }
           show(key);
@@ -66,9 +65,9 @@ async function boot() {
     if (key !== 'library') libraryBack();
   }
 
-  app.replaceChildren(views.library, views.search, views.settings, tabbar);
+  app.replaceChildren(views.library, views.browser, views.settings, tabbar);
   mountLibrary(views.library);
-  const searchApi = mountSearch(views.search, () => show('library'));
+  mountBrowser(views.browser);
   const settingsApi = mountSettings(views.settings);
   mountNowPlaying();
   show('library');

@@ -29,9 +29,9 @@ export function haptic() {
 }
 
 // 押すと縮むもの（行のような大きいものは少しだけ）
-const PRESSABLE = '.icon-btn, .pill, .btn, .tile, .action, .chip-btn, .segments button, .tab, .sync-tap, .selbar button, .track, .artist-row, .result, .mini, button.cell, .lyrics .ln';
+const PRESSABLE = '.icon-btn, .pill, .btn, .tile, .action, .chip-btn, .segments button, .tab, .sync-tap, .selbar button, .track, .artist-row, .result, .mini, button.cell, .lyrics .ln, .bm';
 // 押したら振動するもの（ボタンだけ。曲の行やスクロールでは振動しない）
-const BUZZ = '.icon-btn, .pill, .btn, .action, .chip-btn, .segments button, .tab, .sync-tap, .selbar button, .tile, .switch input, .lyrics .ln';
+const BUZZ = '.icon-btn, .pill, .btn, .action, .chip-btn, .segments button, .tab, .sync-tap, .selbar button, .tile, .switch input, .lyrics .ln, .bm';
 
 export function installFeel() {
   let pressed = null;

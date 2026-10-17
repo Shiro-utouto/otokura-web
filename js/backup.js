@@ -9,10 +9,11 @@ import { ZipWriter, readZip } from './zip.js';
 import { FORMATS, upgrade, files, lyricsStore } from './db.js';
 import * as store from './store.js';
 import { extractColors } from './image.js';
+import { getBookmarks, loadBookmarks, setBookmarks } from './bookmarks.js';
 
 export const BACKUP_FORMAT = 1;
 // 設定の「このアプリについて」に出る版。sw.js の VERSION と同じ番号にする（iPhone で新しい版になったか確かめるため）
-export const APP_VERSION = '6';
+export const APP_VERSION = '7';
 
 const TRACK_ENTRY = /^tracks\/([A-Za-z0-9_-]{1,64})\/([A-Za-z0-9_-][A-Za-z0-9._-]{0,127})$/;
 
@@ -57,6 +58,9 @@ export async function createBackup({ includeMedia, onProgress = () => {} }) {
   await zip.add('library.json', JSON.stringify({ formatVersion: FORMATS.library.current, tracks: tracks.map(trackForBackup) }));
   await zip.add('playlists.json', JSON.stringify({ formatVersion: FORMATS.playlists.current, playlists }));
   await zip.add('settings.json', JSON.stringify({ formatVersion: FORMATS.settings.current, ...settings }));
+  // よく使うサイト（iPhone 版だけ。Android 版は知らないファイルを読み飛ばす）
+  await loadBookmarks();
+  await zip.add('bookmarks.json', JSON.stringify({ formatVersion: FORMATS.bookmarks.current, bookmarks: getBookmarks() }));
   for (let i = 0; i < tracks.length; i++) {
     const t = tracks[i];
     onProgress(i, tracks.length);
@@ -143,6 +147,17 @@ export async function restoreBackup(blob, onProgress = () => {}) {
   const pl = new Map(store.state.playlists.map((p) => [p.id, p]));
   for (const p of playlistsIn) pl.set(p.id, { ...p, trackIds: (p.trackIds || []).filter((id) => current.has(id)) });
   await store.replaceAll({ tracks, playlists: [...pl.values()] });
+  const bmEntry = byName.get('bookmarks.json');
+  if (bmEntry) {
+    try {
+      const incoming = upgrade('bookmarks', JSON.parse(await bmEntry.text())).bookmarks || [];
+      const cur = await loadBookmarks();
+      const urls = new Set(cur.map((b) => b.url));
+      await setBookmarks([...cur, ...incoming.filter((b) => !urls.has(b.url))]);
+    } catch {
+      /* よく使うサイトが読めなくても、曲の復元は続ける */
+    }
+  }
   onProgress(fileEntries.length, fileEntries.length);
   return { tracks: tracksIn.length, playlists: playlistsIn.length, lyrics, missingMedia };
 }

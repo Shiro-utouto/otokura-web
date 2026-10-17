@@ -65,9 +65,48 @@ export function render() {
   const keepScroll = v.scrollTop;
   if (top?.kind === 'playlist') clear(v, playlistPage(top.id));
   else if (top?.kind === 'artist') clear(v, artistPage(top.id));
-  else clear(v, rootPage());
+  else {
+    // 見出しと検索欄は作り直さない（作り直すと、入力中に文字を打てなくなる）
+    const head = rootHead();
+    if (head.el.parentNode !== v) clear(v, head.el, head.body);
+    head.update();
+    clear(head.body, rootContent());
+  }
   v.scrollTop = keepScroll;
   renderSelBar();
+}
+
+let headCache = null;
+function rootHead() {
+  if (headCache) return headCache;
+  const actions = h('div.actions-right');
+  const input = h('input', { type: 'search', placeholder: 'ライブラリを検索', enterkeyhint: 'search', autocomplete: 'off' });
+  const clearBtn = iconButton('close', '検索をやめる', () => {
+    input.value = '';
+    ui.query = '';
+    input.blur();
+    render();
+  });
+  const box = h('label.searchbox', icon('search'), input, clearBtn);
+  input.addEventListener('input', () => {
+    ui.query = input.value;
+    ui.selecting = null;
+    clearBtn.style.visibility = input.value ? 'visible' : 'hidden';
+    render();
+  });
+  input.addEventListener('keydown', (e) => e.key === 'Enter' && input.blur());
+  clearBtn.style.visibility = 'hidden';
+  const el = h('div', h('div.topbar', h('div.small-title', 'ライブラリ'), actions), h('h1.big-title', 'ライブラリ'), box);
+  const body = h('div');
+  headCache = {
+    el,
+    body,
+    update() {
+      box.style.display = store.state.tracks.length ? '' : 'none';
+      clear(actions, ui.selecting ? h('button.back', { type: 'button', onclick: () => back() }, '完了') : iconButton('plus', '曲を追加', () => addSongsFlow(), 'accent'));
+    },
+  };
+  return headCache;
 }
 
 function push(entry) {
@@ -111,11 +150,17 @@ export function openArtist(name) {
 
 // ---------------- ライブラリのトップ ----------------
 function rootPage() {
+  // 詳細ページから戻れないときの予備（見出しごと作る）
+  ui.stack = [];
+  const head = rootHead();
+  head.update();
+  clear(head.body, rootContent());
+  return h('div', head.el, head.body);
+}
+
+function rootContent() {
   const page = h('div');
-  const addBtn = iconButton('plus', '曲を追加', () => addSongsFlow(), 'accent');
-  page.append(h('div.topbar', h('div.small-title', 'ライブラリ'), h('div.actions-right', ui.selecting ? h('button.back', { type: 'button', onclick: () => back() }, '完了') : addBtn)));
-  page.append(h('h1.big-title', 'ライブラリ'));
-  const hint = installHint();
+  const hint = ui.query?.trim() ? null : installHint();
   if (hint) page.append(hint);
   const pc = progressCard();
   if (pc) page.append(pc);
@@ -130,6 +175,11 @@ function rootPage() {
         h('button.btn', { type: 'button', onclick: () => addSongsFlow() }, icon('plus'), '曲を追加'),
       ),
     );
+    return page;
+  }
+
+  if (ui.query?.trim()) {
+    page.append(searchResults(ui.query));
     return page;
   }
 
@@ -463,4 +513,46 @@ function artistPage(name) {
   page.append(h('div.detail-head', head, h('h2', name), h('div.sub', `${tracks.length} 曲`)));
   page.append(songList(tracks));
   return page;
+}
+
+// ---------------- 検索 ----------------
+function norm(s) {
+  // ひらがな・カタカナ、全角・半角、大文字・小文字の違いを気にしない
+  return (s || '')
+    .normalize('NFKC')
+    .toLowerCase()
+    .replace(/[\u30a1-\u30f6]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0x60))
+    .replace(/\s+/g, '');
+}
+
+function searchResults(query) {
+  const q = norm(query);
+  const wrap = h('div');
+  const tracks = sortedTracks().filter((t) => norm(t.title).includes(q) || norm(t.artist).includes(q) || norm(t.album).includes(q));
+  const artists = artistsOf(sortedTracks()).filter((a) => norm(a.name).includes(q));
+  const pls = store.state.playlists.filter((p) => norm(p.name).includes(q));
+  if (!tracks.length && !artists.length && !pls.length) {
+    wrap.append(h('p.empty', '見つかりませんでした'));
+    return wrap;
+  }
+  if (artists.length) {
+    wrap.append(h('div.section-title', 'アーティスト'));
+    for (const a of artists.slice(0, 8)) {
+      const t = a.tracks.find((x) => x.thumbFile) || a.tracks[0];
+      wrap.append(h('div.artist-row', { onclick: () => openArtist(a.name) }, cover(t), h('div.meta', h('div', a.name), h('div.n', `${a.tracks.length} 曲`))));
+    }
+  }
+  if (pls.length) {
+    wrap.append(h('div.section-title', 'プレイリスト'));
+    for (const p of pls) {
+      const t = p.trackIds.map((id) => store.getTrack(id)).find((x) => x?.thumbFile);
+      wrap.append(h('div.artist-row', { onclick: () => openPlaylist(p.id) }, cover(t), h('div.meta', h('div', p.name), h('div.n', `${p.trackIds.length} 曲`))));
+    }
+  }
+  if (tracks.length) {
+    wrap.append(h('div.section-title', '曲'));
+    const ids = tracks.map((t) => t.id);
+    for (const t of tracks) wrap.append(trackRow(t, { showSize: true, onTap: () => player.playList(ids, t.id, { shuffle: false }) }));
+  }
+  return wrap;
 }

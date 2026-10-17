@@ -17,7 +17,7 @@ Ken 個人用の音楽プレーヤーの **iPhone 版（Web アプリ / PWA）**
 | ファイル | 役割 |
 |---|---|
 | `index.html`, `manifest.webmanifest`, `sw.js` | 入口、ホーム画面に追加したときの情報、オフライン用の Service Worker（`APP_FILES` と `VERSION`） |
-| `js/main.js` | 起動、タブ（ライブラリ / 検索 / 設定） |
+| `js/main.js` | 起動、タブ（ライブラリ / ブラウザ / 設定）。検索はライブラリの一番上の検索欄 |
 | `js/db.js` | IndexedDB（`kv` / `files` / `lyrics`）。版付き JSON の読み書きと変換（`FORMATS`、`upgrade`） |
 | `js/store.js` | 曲・プレイリスト・設定の状態と変更通知 |
 | `js/player.js` | 再生（audio 要素1つ）、キュー（`order` と `base`）、シャッフル、リピート、次に再生、Media Session（ロック画面）、前回の続き（`kv` の `session`） |
@@ -30,7 +30,7 @@ Ken 個人用の音楽プレーヤーの **iPhone 版（Web アプリ / PWA）**
 | `js/lrclib.js` | LRCLIB の検索と自動取得（Android 版 `LrcLib.kt` / `LyricsRepository.autoFetch` の移植：長さ ±4 秒、入れ替えて再検索、`looksSwapped` で直す） |
 | `js/zip.js`, `js/backup.js` | zip の読み書き、バックアップと復元（統合） |
 | `js/ui/feel.js` | さわり心地：押すと縮んでばねで戻る（`.pressed`）、触覚フィードバック（iOS 18 の `<input type=checkbox switch>` を見えないところで押すと振動する。指で押した直後だけ。設定 `haptics`） |
-| `js/ui/*.js` | 画面。`dom.js`（部品・シート・アイコン）、`library.js`、`nowplaying.js`（ミニプレーヤー・再生画面・歌詞・キュー）、`lyricsTools.js`（歌詞の検索・編集・タイミング合わせ・補正）、`common.js`（曲の行とメニュー、追加）、`search.js`、`settings.js`、`install.js` |
+| `js/ui/*.js` | 画面。`dom.js`（部品・シート・アイコン）、`library.js`（見出しと検索欄は作り直さない。作り直すと入力中に文字が打てなくなる）、`browser.js`（よく使うサイトと URL・言葉で開く。サイトは iPhone の仕組みで音蔵の上に Safari の画面で開く。データは `js/bookmarks.js`、kv の `bookmarks`、バックアップの `bookmarks.json`。最初は Google・YouTube・ニコニコ。ロゴは使わず頭文字）、`nowplaying.js`（ミニプレーヤー・再生画面・歌詞・キュー）、`lyricsTools.js`（歌詞の検索・編集・タイミング合わせ・補正）、`common.js`（曲の行とメニュー、追加）、`settings.js`、`install.js` |
 
 ## 守ること
 

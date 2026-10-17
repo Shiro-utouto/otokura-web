@@ -16,6 +16,8 @@ export const FORMATS = {
   library: { current: 2, migrations: {} },
   playlists: { current: 2, migrations: {} },
   settings: { current: 1, migrations: {} },
+  // よく使うサイト（iPhone 版だけ）
+  bookmarks: { current: 1, migrations: {} },
 };
 
 let dbPromise = null;

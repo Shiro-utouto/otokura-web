@@ -1619,6 +1619,7 @@ button.cell:active {
 .artist-row,
 .result,
 .mini,
+.bm,
 button.cell {
   transition-property: transform, background, color, opacity, box-shadow;
   transition-duration: 0.55s;
@@ -1644,8 +1645,9 @@ button.cell {
 .sync-tap.pressed {
   transform: scale(0.94);
 }
-.tile.pressed {
-  transform: scale(0.95);
+.tile.pressed,
+.bm.pressed {
+  transform: scale(0.92);
 }
 .mini.pressed {
   transform: scale(0.97);
@@ -1681,4 +1683,72 @@ button.cell.pressed,
 }
 .track.dragging {
   transition: none !important;
+}
+
+/* ---------- ブラウザ ---------- */
+.urlbox {
+  margin-bottom: 10px;
+}
+.search-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 16px 6px;
+}
+.search-chips .chip-btn {
+  color: var(--accent);
+}
+.bm-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px 8px;
+  padding: 8px 16px 4px;
+}
+.bm {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.bm-icon {
+  width: 60px;
+  height: 60px;
+  border-radius: 16px;
+  display: grid;
+  place-items: center;
+  font-size: 26px;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
+}
+.bm-icon.add {
+  background: transparent;
+  border: 1.5px dashed var(--bg4);
+  color: var(--accent);
+  box-shadow: none;
+}
+.bm-name {
+  font-size: 12.5px;
+  color: var(--sub);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.searchbox .icon-btn {
+  width: 32px;
+  height: 32px;
+  color: var(--dim);
+}
+.searchbox .icon-btn .icon {
+  width: 18px;
+  height: 18px;
+}
+/* Safari の検索欄に最初から付いている×は消す（自分の×を出しているので二重になる） */
+input[type='search']::-webkit-search-cancel-button,
+input[type='search']::-webkit-search-decoration {
+  -webkit-appearance: none;
+  appearance: none;
+  display: none;
 }
