@@ -1,5 +1,5 @@
 // 設定：歌詞、容量、バックアップと復元、このアプリについて
-import { h, icon, sheet, toast, confirmDialog, pickFiles } from './dom.js';
+import { h, icon, sheet, toast, confirmDialog, pickFiles, clear } from './dom.js';
 import * as store from '../store.js';
 import { estimate, requestPersist } from '../db.js';
 import { createBackup, restoreBackup, inspectBackup, saveBlob, APP_VERSION } from '../backup.js';
@@ -44,11 +44,15 @@ export function mountSettings(view) {
     }
     const used = store.state.tracks.reduce((n, t) => n + (t.size || 0), 0);
     const quota = est.quota || 0;
+    // iPhone の Safari は使っている容量を少なめに答えることがあるので、曲の合計より小さければ曲の合計を出す
+    const usage = Math.max(est.usage || 0, store.state.tracks.reduce((n, t) => n + (t.size || 0), 0));
     const videos = store.state.tracks.filter(isVideoTrack);
     const videoCount = videos.length;
     const videoBytes = videos.reduce((n, t) => n + (t.size || 0), 0);
 
-    page.replaceChildren(
+    // clear は null を飛ばす（replaceChildren に null を渡すと「null」という文字が出てしまう）
+    clear(
+      page,
       h('div.topbar', h('div.small-title', '設定')),
       h('h1.big-title', '設定'),
 
@@ -83,8 +87,8 @@ export function mountSettings(view) {
           h(
             'div.grow',
             h('div', `曲 ${store.state.tracks.length} 曲 ・ ${formatBytes(used)}`),
-            h('div.desc', est.usage != null ? `このアプリが使っている容量：${formatBytes(est.usage)}${quota ? `（使える目安 ${formatBytes(quota)}）` : ''}` : ''),
-            quota ? h('div.meter', h('i', { style: { width: `${Math.min(100, ((est.usage || 0) / quota) * 100).toFixed(1)}%` } })) : null,
+            h('div.desc', est.usage != null ? `このアプリが使っている容量：約 ${formatBytes(usage)}${quota ? `（使える目安 ${formatBytes(quota)}）` : ''}` : ''),
+            quota ? h('div.meter', h('i', { style: { width: `${Math.min(100, (usage / quota) * 100).toFixed(1)}%` } })) : null,
           ),
         ),
         h(
