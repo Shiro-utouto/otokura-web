@@ -49,6 +49,8 @@ Ken 個人用の音楽プレーヤーの **iPhone 版（Web アプリ / PWA）**
 - ロック画面のジャケットは data: の URL で渡す（blob: だと出ないことがある）
 - 長さは、まずタグ（mp3 のフレーム、mp4 の mvhd）から取る。iPhone は再生するまで video / audio を読み込まないことがあるので、`probeMedia` は 5 秒で諦める。再生したときに本当の長さで直す
 - Safari のタブとホーム画面のアプリは保存場所が別。ホーム画面に追加して使う。`navigator.storage.persist()` を頼む
+- **iPhone では touchmove を `preventDefault` すると、そのあとの click が起きない**。下に引っぱって閉じる（`dom.js` の `dragToClose`）は、指が 12px 下に動くまで何もしない。前は 1px で止めていたので、再生画面のボタンが指のぶれで反応しなかった（2026-10-18。Chromium ではこの違いが再現しない）
+- アプリの版は `sw.js` の `VERSION` と `backup.js` の `APP_VERSION` を同じ番号で上げる（設定の画面に出るので、Ken の iPhone が新しい版になったか分かる）
 - 歌詞の上下の余白は `padding` ではなく、中に置いた `.lyr-space` で作る（`padding: 30vh … 45vh` だと iPhone の画面では箱が縮まず、歌詞が操作ボタンの上にはみ出してボタンが押せなかった。2026-10-18）
 - `File` をそのまま IndexedDB に入れず、`arrayBuffer()` でコピーしてから保存する
 - **yt-dlp の 1080p の mp4 は映像が AV1 などで、iPhone によっては映像も音声も再生できない**（2026-10-17、Ken の iPhone で「この形式は iPhone で再生できないようです」）。そのため動画は取り込み時に音声だけの m4a にする（設定 `videoAsAudio`、最初はオン）。再生に失敗した動画の曲も、その場で音声だけにしてから再生し直す（`player.js` の `recoverFromError`）。設定にまとめて変えるボタンもある。音声が Opus の mp4 は取り出せない

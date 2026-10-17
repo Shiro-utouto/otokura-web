@@ -192,19 +192,28 @@ export function sheet(content, { title, full = false, onClose } = {}) {
   return { el: panel, body, close, done };
 }
 
-/** 下に引っぱると閉じる（中身が一番上までスクロールしているときだけ） */
+/**
+ * 下に引っぱると閉じる（中身が一番上までスクロールしているときだけ）。
+ * 指が少し（12px）下に動くまでは何もしない。iPhone では touchmove を止める（preventDefault）と
+ * そのあとのタップ（click）が起きなくなるので、ボタンを押すときの指のぶれで止めないようにする
+ */
 export function dragToClose(panel, scroller, onClose, handle = panel) {
+  const SLOP = 12;
+  let startX = 0;
   let startY = null;
   let dy = 0;
+  let dragging = false;
   let startT = 0;
   handle.addEventListener(
     'touchstart',
     (e) => {
+      startY = null;
+      dragging = false;
       if (e.touches.length !== 1) return;
       if (scroller && scroller.scrollTop > 0 && scroller.contains(e.target)) return;
       if (e.target.closest('input, textarea, .no-drag')) return;
+      startX = e.touches[0].clientX;
       startY = e.touches[0].clientY;
-      startT = performance.now();
       dy = 0;
     },
     { passive: true },
@@ -213,23 +222,40 @@ export function dragToClose(panel, scroller, onClose, handle = panel) {
     'touchmove',
     (e) => {
       if (startY == null) return;
-      dy = e.touches[0].clientY - startY;
-      if (dy > 0) {
-        panel.style.transition = 'none';
-        panel.style.transform = `translateY(${dy}px)`;
-        if (e.cancelable) e.preventDefault();
-      } else if (dy < -10) startY = null;
+      const t = e.touches[0];
+      const moveY = t.clientY - startY;
+      if (!dragging) {
+        // 上や横に動いたら、引っぱる操作ではない
+        if (moveY < -SLOP || Math.abs(t.clientX - startX) > SLOP) {
+          startY = null;
+          return;
+        }
+        if (moveY < SLOP) return;
+        dragging = true;
+        startY = t.clientY;
+        startT = performance.now();
+      }
+      dy = Math.max(0, t.clientY - startY);
+      panel.style.transition = 'none';
+      panel.style.transform = `translateY(${dy}px)`;
+      if (e.cancelable) e.preventDefault();
     },
     { passive: false },
   );
-  handle.addEventListener('touchend', () => {
-    if (startY == null) return;
+  const end = () => {
+    if (!dragging) {
+      startY = null;
+      return;
+    }
     const v = dy / Math.max(1, performance.now() - startT);
     panel.style.transition = '';
     panel.style.transform = '';
-    if (dy > 120 || (dy > 40 && v > 0.6)) onClose();
+    if (dy > 110 || (dy > 30 && v > 0.5)) onClose();
     startY = null;
-  });
+    dragging = false;
+  };
+  handle.addEventListener('touchend', end);
+  handle.addEventListener('touchcancel', end);
 }
 
 /** 選択肢のシート。items: [{ label, icon?, danger?, onSelect }] */
