@@ -6,6 +6,7 @@ import { probeMedia, resizeImage, extractColors } from './image.js';
 import { files } from './db.js';
 import * as store from './store.js';
 import { autoFetch } from './lrclib.js';
+import { extractAudioM4a } from './mp4audio.js';
 
 /** 同じファイルを2回追加しないための目印（元の名前と大きさ） */
 export function duplicateKey(name, size) {
@@ -133,17 +134,36 @@ export async function importFiles(list, onProgress = () => {}) {
 async function addOne(file, sourceKey) {
   const ext = extensionOf(file.name) || 'bin';
   const type = file.type || MIME_BY_EXT[ext] || 'application/octet-stream';
+  const tags = await readTags(file);
+  let src = file;
+  let outExt = ext;
+  let outType = type;
+  let frame = null;
+  let converted = false;
+  // 動画は音声だけにして保存する（iPhone が再生できない映像の形式でも聞けて、容量も小さくなる）
+  if (tags.hasVideo && store.state.settings.videoAsAudio) {
+    if (!tags.picture) frame = (await probeMedia(file, true)).frame;
+    try {
+      src = await extractAudioM4a(file);
+      outExt = 'm4a';
+      outType = 'audio/mp4';
+      converted = true;
+    } catch (e) {
+      console.warn('音声だけにできませんでした', e);
+    }
+  }
   // File のまま保存すると、Safari では元の場所の参照になることがあるので、中身をコピーする
-  const blob = new Blob([await file.arrayBuffer()], { type });
-  const tags = await readTags(blob);
+  const blob = new Blob([await src.arrayBuffer()], { type: outType });
   // 長さがタグから分かる音声だけの曲は、再生の仕組みで調べない（iPhone では時間がかかることがあるため）
-  const maybeVideo = !!tags.hasVideo || (isVideoName(file.name) && tags.hasVideo !== false);
-  const probe = maybeVideo || !tags.durationMs ? await probeMedia(blob, !tags.picture && maybeVideo) : { durationMs: 0, hasVideo: false, frame: null };
-  const isVideo = !!(probe.hasVideo || tags.hasVideo);
+  const maybeVideo = !converted && (!!tags.hasVideo || (isVideoName(file.name) && tags.hasVideo !== false));
+  const probe =
+    maybeVideo || !tags.durationMs ? await probeMedia(blob, !tags.picture && !frame && maybeVideo) : { durationMs: 0, hasVideo: false, frame: null };
+  probe.frame = probe.frame || frame;
+  const isVideo = !converted && !!(probe.hasVideo || tags.hasVideo);
 
   const [title, artist] = decideTitleArtist(file.name, tags.title, tags.artist || tags.albumArtist);
   const id = store.newId();
-  const mediaFile = `media.${ext}`;
+  const mediaFile = `media.${outExt}`;
   await files.put(id, mediaFile, blob);
 
   let thumbFile = null;
@@ -175,4 +195,23 @@ async function addOne(file, sourceKey) {
   };
   await store.addTrack(track);
   return { ...track, _embeddedLyrics: tags.lyrics || null };
+}
+
+/** 取り込み済みの動画の曲を、音声だけ（m4a）に置き換える。成功したら減った容量を返す */
+export async function convertTrackToAudio(trackId) {
+  const t = store.getTrack(trackId);
+  if (!t) throw new Error('曲が見つかりません');
+  const old = await files.get(t.id, t.mediaFile);
+  if (!old) throw new Error('曲のファイルがありません');
+  const audio = await extractAudioM4a(old);
+  const blob = new Blob([await audio.arrayBuffer()], { type: 'audio/mp4' });
+  const name = t.mediaFile === 'media.m4a' ? 'media-audio.m4a' : 'media.m4a';
+  await files.put(t.id, name, blob);
+  await store.updateTrack(t.id, { mediaFile: name, isVideo: false, size: blob.size });
+  await files.del(t.id, t.mediaFile);
+  return old.size - blob.size;
+}
+
+export function isVideoTrack(t) {
+  return !!t && (t.isVideo || /\.(mp4|m4v|mov)$/i.test(t.mediaFile || ''));
 }

@@ -315,6 +315,33 @@ export async function restoreSession() {
   }
 }
 
+// 再生できなかった動画の曲は、音声だけを取り出して置き換えてから、もう一度再生する
+// （1080p の動画は映像が AV1 などで、iPhone によっては映像も音声も再生できないため）
+const triedConvert = new Set();
+async function recoverFromError() {
+  const t = q.current;
+  const { convertTrackToAudio, isVideoTrack } = await import('./importer.js');
+  if (!t || !isVideoTrack(t) || triedConvert.has(t.id)) {
+    q.error = 'この形式は iPhone で再生できないようです';
+    emit();
+    return;
+  }
+  triedConvert.add(t.id);
+  const at = audio.currentTime;
+  q.error = 'この動画は iPhone で再生できない形式なので、音声だけを取り出しています…';
+  emit();
+  try {
+    await convertTrackToAudio(t.id);
+    q.error = null;
+    loadedId = null;
+    await load(true);
+    if (at > 1) audio.currentTime = at;
+  } catch (e) {
+    q.error = `再生できませんでした（${e.message}）`;
+    emit();
+  }
+}
+
 // iPhone は、指で触った直後でないと音を出させてくれない。最初に触ったときに audio を「起こして」おくと、
 // そのあとは曲のデータを読み込んでから（少し待ってから）でも再生できる
 const SILENT = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YQAAAAA=';
@@ -362,8 +389,7 @@ export function init() {
   audio.addEventListener('ended', () => !silent() && next(true));
   audio.addEventListener('error', () => {
     if (!audio.getAttribute('src') || silent()) return;
-    q.error = 'この形式は iPhone で再生できないようです';
-    emit();
+    recoverFromError();
   });
   let lastPos = 0;
   audio.addEventListener('timeupdate', () => {

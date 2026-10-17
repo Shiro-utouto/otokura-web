@@ -14,6 +14,8 @@ export const DEFAULT_SETTINGS = {
   autoFetchLyrics: true,
   /** 歌詞をカラオケ風に塗る */
   karaoke: true,
+  /** 動画は音声だけにして保存する */
+  videoAsAudio: true,
 };
 
 export const state = {

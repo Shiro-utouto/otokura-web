@@ -1,7 +1,7 @@
 // オフラインでも開けるようにするための仕組み（Service Worker）
 // アプリのファイルは「保存してあるものをすぐ使い、裏で新しいものを取ってくる」。次に開いたときに新しい版になる
 // ファイルを足したら APP_FILES に足し、VERSION を上げる
-const VERSION = 'otokura-web-v1';
+const VERSION = 'otokura-web-v2';
 const APP_FILES = [
   './',
   './index.html',
@@ -13,6 +13,7 @@ const APP_FILES = [
   './js/player.js',
   './js/importer.js',
   './js/tags.js',
+  './js/mp4audio.js',
   './js/image.js',
   './js/lrc.js',
   './js/karaoke.js',
@@ -39,7 +40,8 @@ self.addEventListener('install', (e) => {
   e.waitUntil(
     caches
       .open(VERSION)
-      .then((c) => c.addAll(APP_FILES))
+      // GitHub Pages の10分のキャッシュを通さず、必ず新しいファイルを取る
+      .then((c) => c.addAll(APP_FILES.map((u) => new Request(u, { cache: 'reload' }))))
       .then(() => self.skipWaiting()),
   );
 });

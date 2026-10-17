@@ -47,3 +47,20 @@ test('USLT の歌詞', async () => {
   assert.equal(t.title, '曲');
   assert.equal(t.lyrics, '[00:01.00]一行目\n二行目');
 });
+
+// 動画から音声だけを取り出す
+import { extractAudioM4a, audioCodecOf } from '../js/mp4audio.js';
+import { readTags as readTags2 } from '../js/tags.js';
+media('AV1 の動画から AAC の音声だけを取り出す', async () => {
+  const src = blob('av1.mp4');
+  assert.equal(await audioCodecOf(src), 'mp4a');
+  const out = await extractAudioM4a(src);
+  assert.ok(out.size < src.size / 3, '小さくなる');
+  const t = await readTags2(out);
+  assert.equal(t.hasVideo, false);
+  assert.equal(t.title, 'AV1の動画');
+  assert.equal(t.durationMs, 12000);
+});
+media('Opus の音声は取り出さない（理由を返す）', async () => {
+  await assert.rejects(() => extractAudioM4a(blob('opus.mp4')), /Opus/);
+});

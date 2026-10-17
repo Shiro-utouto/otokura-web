@@ -23,6 +23,7 @@ Ken 個人用の音楽プレーヤーの **iPhone 版（Web アプリ / PWA）**
 | `js/player.js` | 再生（audio 要素1つ）、キュー（`order` と `base`）、シャッフル、リピート、次に再生、Media Session（ロック画面）、前回の続き（`kv` の `session`） |
 | `js/importer.js` | 曲の追加（中身をコピーして保存、重複は「名前＋大きさ」で判定）、同じ名前の .lrc、歌詞の自動取得の順番待ち |
 | `js/tags.js` | タグ読み取り：mp3（ID3v2.2〜2.4、USLT と TXXX の歌詞、APIC、長さ）、m4a / mp4（ilst、mvhd の長さ、映像の有無）、FLAC |
+| `js/mp4audio.js` | mp4 の動画から音声（AAC）だけを取り出して m4a にする（変換なし・音は同じ）。音声のトラックだけ残し、チャンクを並べ直して stco / co64 を書き換える |
 | `js/image.js` | ジャケットの縮小、背景のグラデーション用の色、動画の1コマ、長さの調査（`probeMedia`） |
 | `js/lrc.js`, `js/karaoke.js` | Android 版 `Lrc.kt` / `Karaoke.kt` の移植 |
 | `js/titleCleaner.js`, `js/localFiles.js` | Android 版 `TitleCleaner.kt` / `LocalFiles.kt` の移植 ＋ ダウンロードサイトのファイル名対応 |
@@ -49,6 +50,7 @@ Ken 個人用の音楽プレーヤーの **iPhone 版（Web アプリ / PWA）**
 - 長さは、まずタグ（mp3 のフレーム、mp4 の mvhd）から取る。iPhone は再生するまで video / audio を読み込まないことがあるので、`probeMedia` は 5 秒で諦める。再生したときに本当の長さで直す
 - Safari のタブとホーム画面のアプリは保存場所が別。ホーム画面に追加して使う。`navigator.storage.persist()` を頼む
 - `File` をそのまま IndexedDB に入れず、`arrayBuffer()` でコピーしてから保存する
+- **yt-dlp の 1080p の mp4 は映像が AV1 などで、iPhone によっては映像も音声も再生できない**（2026-10-17、Ken の iPhone で「この形式は iPhone で再生できないようです」）。そのため動画は取り込み時に音声だけの m4a にする（設定 `videoAsAudio`、最初はオン）。再生に失敗した動画の曲も、その場で音声だけにしてから再生し直す（`player.js` の `recoverFromError`）。設定にまとめて変えるボタンもある。音声が Opus の mp4 は取り出せない
 
 ## テスト
 
@@ -63,4 +65,5 @@ MEDIA=/tmp/media node --test tests/*.mjs      # タグ読み取りのテスト�
 ## 状態（2026-10-17）
 
 - 最初の版を作った：ファイルからの追加、ライブラリ（プレイリスト / 曲 / アーティスト、複数選択）、再生画面（ジャケットの色の背景、歌詞のカラオケ表示・ぼかし・ばねのスクロール・行タップ・3秒の手動スクロール）、キュー、シャッフル・リピート、歌詞の検索・貼り付け・タイミング合わせ・表示タイミング、曲の編集、検索、バックアップと復元、オフライン
-- まだ：Ken の iPhone での確認。動画の曲は音だけ再生（映像の表示はまだない）
+- Ken の iPhone で、歌詞の自動取得（LRCLIB）が動くのを確認（2026-10-17）。a-Shell の yt-dlp で取った 1080p の mp4 が再生できなかった → 音声だけにする仕組みを足した
+- まだ：動画の曲の映像の表示はない（音声だけにして保存するのが基本）

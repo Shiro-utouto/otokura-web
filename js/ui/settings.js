@@ -5,6 +5,7 @@ import { estimate, requestPersist } from '../db.js';
 import { createBackup, restoreBackup, inspectBackup, saveBlob, APP_VERSION } from '../backup.js';
 import { formatBytes } from '../localFiles.js';
 import { isStandalone } from './install.js';
+import { convertTrackToAudio, isVideoTrack } from '../importer.js';
 
 function toggle(key, label, desc) {
   const input = h('input', {
@@ -43,6 +44,9 @@ export function mountSettings(view) {
     }
     const used = store.state.tracks.reduce((n, t) => n + (t.size || 0), 0);
     const quota = est.quota || 0;
+    const videos = store.state.tracks.filter(isVideoTrack);
+    const videoCount = videos.length;
+    const videoBytes = videos.reduce((n, t) => n + (t.size || 0), 0);
 
     page.replaceChildren(
       h('div.topbar', h('div.small-title', '設定')),
@@ -53,6 +57,19 @@ export function mountSettings(view) {
         'div.group',
         toggle('autoFetchLyrics', '曲を追加したら歌詞を自動で探す', '曲名とアーティスト、曲の長さで LRCLIB（無料の歌詞データベース）を探します'),
         toggle('karaoke', 'カラオケ風に1文字ずつ塗る', 'オフにすると、今の行だけを明るくします'),
+      ),
+
+      h('div.group-title', '動画'),
+      h(
+        'div.group',
+        toggle('videoAsAudio', '動画は音声だけにして保存する', '容量が数十分の1になり、iPhone が再生できない映像の形式（AV1 など）の動画でも聞けます。音質は変わりません'),
+        videoCount
+          ? h(
+              'button.cell.link',
+              { type: 'button', onclick: convertAllVideos },
+              h('div.grow', h('div', `入っている動画 ${videoCount} 曲を音声だけにする`), h('div.desc', `今 ${formatBytes(videoBytes)} 使っています`)),
+            )
+          : null,
       ),
 
       h('div.group-title', '容量'),
@@ -101,6 +118,25 @@ export function mountSettings(view) {
       ),
       store.state.issues.length ? h('div', h('div.group-title', 'お知らせ'), h('div.group', store.state.issues.map((m) => h('div.cell', h('div.desc', m))))) : null,
     );
+  }
+
+  async function convertAllVideos() {
+    const list = store.state.tracks.filter(isVideoTrack);
+    if (!(await confirmDialog(`動画 ${list.length} 曲を音声だけにしますか？\n映像は消えます（音声はそのまま）。`, { ok: '音声だけにする' }))) return;
+    const b = busySheet('動画を音声だけにする');
+    let saved = 0;
+    const failed = [];
+    for (let i = 0; i < list.length; i++) {
+      b.set(`${i + 1} / ${list.length}：${list[i].title}`, (i / list.length) * 100);
+      try {
+        saved += await convertTrackToAudio(list[i].id);
+      } catch (e) {
+        failed.push(`${list[i].title}（${e.message}）`);
+      }
+    }
+    b.close();
+    toast(`${formatBytes(saved)} 減りました${failed.length ? `\nできなかった曲：${failed.join('、')}` : ''}`, 5000);
+    render();
   }
 
   async function backupFlow(includeMedia) {
