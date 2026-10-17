@@ -28,6 +28,10 @@ export function isLyricsFile(name) {
   return LYRICS_EXT.has(extensionOf(name));
 }
 
+export function isImageFile(name, mime = '') {
+  return /^image\//.test(mime || '') || ['jpg', 'jpeg', 'png', 'webp'].includes(extensionOf(name));
+}
+
 export function isZipFile(name, mime = '') {
   return extensionOf(name) === 'zip' || /zip/.test(mime || '');
 }

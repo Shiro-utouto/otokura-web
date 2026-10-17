@@ -21,7 +21,7 @@ Ken 個人用の音楽プレーヤーの **iPhone 版（Web アプリ / PWA）**
 | `js/db.js` | IndexedDB（`kv` / `files` / `lyrics`）。版付き JSON の読み書きと変換（`FORMATS`、`upgrade`） |
 | `js/store.js` | 曲・プレイリスト・設定の状態と変更通知 |
 | `js/player.js` | 再生（audio 要素1つ）、キュー（`order` と `base`）、シャッフル、リピート、次に再生、Media Session（ロック画面）、前回の続き（`kv` の `session`） |
-| `js/importer.js` | 曲の追加（中身をコピーして保存、重複は「名前＋大きさ」で判定）、同じ名前の .lrc、歌詞の自動取得の順番待ち |
+| `js/importer.js` | 曲の追加（中身をコピーして保存、重複は「名前＋大きさ」で判定）、同じ名前の .lrc（歌詞）と画像（ジャケット）、歌詞の自動取得の順番待ち |
 | `js/tags.js` | タグ読み取り：mp3（ID3v2.2〜2.4、USLT と TXXX の歌詞、APIC、長さ）、m4a / mp4（ilst、mvhd の長さ、映像の有無）、FLAC |
 | `js/mp4audio.js` | mp4 の動画から音声（AAC）だけを取り出して m4a にする（変換なし・音は同じ）。音声のトラックだけ残し、チャンクを並べ直して stco / co64 を書き換える |
 | `js/image.js` | ジャケットの縮小、背景のグラデーション用の色、動画の1コマ、長さの調査（`probeMedia`） |
@@ -49,6 +49,7 @@ Ken 個人用の音楽プレーヤーの **iPhone 版（Web アプリ / PWA）**
 - ロック画面のジャケットは data: の URL で渡す（blob: だと出ないことがある）
 - 長さは、まずタグ（mp3 のフレーム、mp4 の mvhd）から取る。iPhone は再生するまで video / audio を読み込まないことがあるので、`probeMedia` は 5 秒で諦める。再生したときに本当の長さで直す
 - Safari のタブとホーム画面のアプリは保存場所が別。ホーム画面に追加して使う。`navigator.storage.persist()` を頼む
+- 歌詞の上下の余白は `padding` ではなく、中に置いた `.lyr-space` で作る（`padding: 30vh … 45vh` だと iPhone の画面では箱が縮まず、歌詞が操作ボタンの上にはみ出してボタンが押せなかった。2026-10-18）
 - `File` をそのまま IndexedDB に入れず、`arrayBuffer()` でコピーしてから保存する
 - **yt-dlp の 1080p の mp4 は映像が AV1 などで、iPhone によっては映像も音声も再生できない**（2026-10-17、Ken の iPhone で「この形式は iPhone で再生できないようです」）。そのため動画は取り込み時に音声だけの m4a にする（設定 `videoAsAudio`、最初はオン）。再生に失敗した動画の曲も、その場で音声だけにしてから再生し直す（`player.js` の `recoverFromError`）。設定にまとめて変えるボタンもある。音声が Opus の mp4 は取り出せない
 

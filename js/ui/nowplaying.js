@@ -259,8 +259,8 @@ async function mountLyrics(t) {
   if (np.lyricsFor !== t.id || np.lyricsBox !== box) return;
   if (!raw || !raw.trim()) {
     box.classList.add('plain');
-    box.style.paddingTop = '12vh';
     box.append(
+      h('div.lyr-space', { style: { height: '10vh' } }),
       h(
         'div.note-box',
         h('div', 'この曲の歌詞はまだありません'),
@@ -274,15 +274,14 @@ async function mountLyrics(t) {
   np.lyrics = lyr;
   if (!lyr.synced) {
     box.classList.add('plain');
-    box.style.paddingTop = '4vh';
-    box.style.paddingBottom = '20vh';
+    box.append(h('div.lyr-space'));
     for (const l of lyr.lines) box.append(h(`div.ln${l.text.trim() ? '' : '.empty-line'}`, l.text));
-    box.append(h('div.note-box', h('div', '文字だけの歌詞です。タイミングを付けるとカラオケ表示になります。'), h('button.btn.secondary', { type: 'button', onclick: () => openSyncEditor(t) }, 'タイミングを合わせる')));
+    box.append(h('div.note-box', h('div', '文字だけの歌詞です。タイミングを付けるとカラオケ表示になります。'), h('button.btn.secondary', { type: 'button', onclick: () => openSyncEditor(t) }, 'タイミングを合わせる')), h('div.lyr-space.bottom'));
     return;
   }
   box.classList.toggle('karaoke', !!store.state.settings.karaoke);
   np.intro = h('div.dots', h('i'), h('i'), h('i'));
-  box.append(np.intro);
+  box.append(h('div.lyr-space'), np.intro);
   lyr.lines.forEach((l, i) => {
     const el = h(`div.ln${l.text.trim() ? '' : '.empty-line'}`, l.text);
     el.addEventListener('click', () => {
@@ -294,6 +293,7 @@ async function mountLyrics(t) {
     np.lineEls.push(el);
     box.append(el);
   });
+  box.append(h('div.lyr-space.bottom'));
   // 指でスクロールしたら3秒は自動スクロールしない
   box.addEventListener('touchstart', () => {
     np.touching = true;

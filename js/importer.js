@@ -1,7 +1,7 @@
 // 「ファイル」アプリから選んだ曲をライブラリに追加する
 // 曲のファイルは iPhone の中（IndexedDB）にコピーする。元のファイルを消しても再生できる
 import { readTags } from './tags.js';
-import { decideTitleArtist, isMediaFile, isLyricsFile, baseName, extensionOf, isVideoName } from './localFiles.js';
+import { decideTitleArtist, isMediaFile, isLyricsFile, isImageFile, baseName, extensionOf, isVideoName } from './localFiles.js';
 import { probeMedia, resizeImage, extractColors } from './image.js';
 import { files } from './db.js';
 import * as store from './store.js';
@@ -86,6 +86,8 @@ export async function importFiles(list, onProgress = () => {}) {
   const all = [...list];
   const media = all.filter((f) => isMediaFile(f.name, f.type));
   const lyricFiles = new Map(all.filter((f) => isLyricsFile(f.name)).map((f) => [baseName(f.name).toLowerCase(), f]));
+  // 同じ名前の画像（yt-dlp の --write-thumbnail の .webp など）はジャケットにする
+  const imageFiles = new Map(all.filter((f) => isImageFile(f.name, f.type)).map((f) => [baseName(f.name).toLowerCase(), f]));
   const existing = new Set(store.state.tracks.map((t) => t.sourceKey).filter(Boolean));
   const result = { added: [], skipped: [], failed: [], lyricsAttached: 0 };
 
@@ -98,7 +100,7 @@ export async function importFiles(list, onProgress = () => {}) {
       continue;
     }
     try {
-      const track = await addOne(f, key);
+      const track = await addOne(f, key, imageFiles.get(baseName(f.name).toLowerCase()) || null);
       existing.add(key);
       result.added.push(track);
       // 同じ名前の .lrc / .txt があれば歌詞にする
@@ -131,7 +133,7 @@ export async function importFiles(list, onProgress = () => {}) {
   return result;
 }
 
-async function addOne(file, sourceKey) {
+async function addOne(file, sourceKey, coverFile = null) {
   const ext = extensionOf(file.name) || 'bin';
   const type = file.type || MIME_BY_EXT[ext] || 'application/octet-stream';
   const tags = await readTags(file);
@@ -168,7 +170,7 @@ async function addOne(file, sourceKey) {
 
   let thumbFile = null;
   let colors = null;
-  const coverSrc = tags.picture || probe.frame;
+  const coverSrc = tags.picture || coverFile || probe.frame;
   if (coverSrc) {
     const cover = (await resizeImage(coverSrc)) || coverSrc;
     thumbFile = 'cover.jpg';

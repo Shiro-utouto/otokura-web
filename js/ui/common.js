@@ -189,7 +189,7 @@ export function editTrack(t) {
 // ---- 曲の追加（取り込み） ----
 export const importState = { running: false, done: 0, total: 0, name: '' };
 
-export const ACCEPT = 'audio/*,video/mp4,video/quicktime,.mp3,.m4a,.aac,.flac,.wav,.mp4,.m4v,.mov,.lrc,.txt';
+export const ACCEPT = 'audio/*,video/mp4,video/quicktime,.mp3,.m4a,.aac,.flac,.wav,.mp4,.m4v,.mov,.lrc,.txt,.jpg,.jpeg,.png,.webp';
 
 export async function addSongsFlow() {
   const list = await pickFiles({ accept: ACCEPT, multiple: true });

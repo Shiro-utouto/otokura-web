@@ -740,6 +740,7 @@ body.has-mini .view {
   color: #fff;
 }
 .np-main {
+  overflow: hidden;
   flex: 1;
   min-height: 0;
   position: relative;
@@ -824,6 +825,8 @@ body.has-mini .view {
 }
 
 .np-info {
+  position: relative;
+  z-index: 2;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -851,6 +854,8 @@ body.has-mini .view {
 
 .np-controls {
   flex: none;
+  position: relative;
+  z-index: 2;
   padding: 12px 28px 0;
 }
 .seek {
@@ -943,10 +948,24 @@ body.has-mini .view {
   min-height: 0;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
-  padding: 30vh 26px 45vh;
+  /* 上下の余白は中の .lyr-space で作る（padding だと箱が縮まず、操作ボタンの上にはみ出していた） */
+  position: relative;
+  padding: 0 26px;
   mask-image: linear-gradient(180deg, transparent 0, #000 12%, #000 78%, transparent 100%);
   -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 12%, #000 78%, transparent 100%);
   scrollbar-width: none;
+}
+.lyrics .lyr-space {
+  height: 22vh;
+}
+.lyrics .lyr-space.bottom {
+  height: 40vh;
+}
+.lyrics.plain .lyr-space {
+  height: 3vh;
+}
+.lyrics.plain .lyr-space.bottom {
+  height: 16vh;
 }
 .lyrics::-webkit-scrollbar {
   display: none;

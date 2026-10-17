@@ -126,7 +126,7 @@ function rootPage() {
         'div.empty',
         icon('note'),
         h('h3', 'まだ曲がありません'),
-        h('div', '「ファイル」アプリにある曲（mp3・m4a・mp4 など）を選んで追加します。同じ名前の .lrc を一緒に選ぶと歌詞になります。'),
+        h('div', '「ファイル」アプリにある曲（mp3・m4a・mp4 など）を選んで追加します。同じ名前の .lrc を一緒に選ぶと歌詞に、画像（.jpg・.webp など）を選ぶとジャケットになります。'),
         h('button.btn', { type: 'button', onclick: () => addSongsFlow() }, icon('plus'), '曲を追加'),
       ),
     );
