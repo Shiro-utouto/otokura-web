@@ -357,7 +357,6 @@ export function onLongPress(el, fn, ms = 480) {
       sy = e.touches[0].clientY;
       timer = setTimeout(() => {
         fired = true;
-        navigator.vibrate?.(10);
         fn(e);
       }, ms);
     },

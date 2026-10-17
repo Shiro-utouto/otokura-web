@@ -1,7 +1,7 @@
 // オフラインでも開けるようにするための仕組み（Service Worker）
 // アプリのファイルは「保存してあるものをすぐ使い、裏で新しいものを取ってくる」。次に開いたときに新しい版になる
 // ファイルを足したら APP_FILES に足し、VERSION を上げる
-const VERSION = 'otokura-web-v4';
+const VERSION = 'otokura-web-v5';
 const APP_FILES = [
   './',
   './index.html',
@@ -30,6 +30,7 @@ const APP_FILES = [
   './js/ui/search.js',
   './js/ui/settings.js',
   './js/ui/install.js',
+  './js/ui/feel.js',
   './icons/icon.svg',
   './icons/icon-192.png',
   './icons/icon-512.png',

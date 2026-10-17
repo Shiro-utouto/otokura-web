@@ -8,6 +8,7 @@ import { mountNowPlaying } from './ui/nowplaying.js';
 import { mountSearch } from './ui/search.js';
 import { mountSettings } from './ui/settings.js';
 import { runImport } from './ui/common.js';
+import { installFeel } from './ui/feel.js';
 
 async function boot() {
   const app = document.getElementById('app');
@@ -18,6 +19,7 @@ async function boot() {
     return;
   }
   player.init();
+  installFeel();
 
   const views = {
     library: h('div.view'),

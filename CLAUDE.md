@@ -29,6 +29,7 @@ Ken 個人用の音楽プレーヤーの **iPhone 版（Web アプリ / PWA）**
 | `js/titleCleaner.js`, `js/localFiles.js` | Android 版 `TitleCleaner.kt` / `LocalFiles.kt` の移植 ＋ ダウンロードサイトのファイル名対応 |
 | `js/lrclib.js` | LRCLIB の検索と自動取得（Android 版 `LrcLib.kt` / `LyricsRepository.autoFetch` の移植：長さ ±4 秒、入れ替えて再検索、`looksSwapped` で直す） |
 | `js/zip.js`, `js/backup.js` | zip の読み書き、バックアップと復元（統合） |
+| `js/ui/feel.js` | さわり心地：押すと縮んでばねで戻る（`.pressed`）、触覚フィードバック（iOS 18 の `<input type=checkbox switch>` を見えないところで押すと振動する。指で押した直後だけ。設定 `haptics`） |
 | `js/ui/*.js` | 画面。`dom.js`（部品・シート・アイコン）、`library.js`、`nowplaying.js`（ミニプレーヤー・再生画面・歌詞・キュー）、`lyricsTools.js`（歌詞の検索・編集・タイミング合わせ・補正）、`common.js`（曲の行とメニュー、追加）、`search.js`、`settings.js`、`install.js` |
 
 ## 守ること

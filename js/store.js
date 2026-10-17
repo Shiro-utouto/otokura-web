@@ -16,6 +16,8 @@ export const DEFAULT_SETTINGS = {
   karaoke: true,
   /** 動画は音声だけにして保存する */
   videoAsAudio: true,
+  /** ボタンを押したときの触覚フィードバック */
+  haptics: true,
 };
 
 export const state = {

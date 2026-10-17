@@ -75,7 +75,10 @@ function renderMini() {
     m.querySelector('.t').textContent = t.title;
     m.querySelector('.a').textContent = t.artist || 'アーティスト不明';
   }
-  m._play.replaceChildren(icon(player.q.playing ? 'pause' : 'play'));
+  if (m._lastPlaying !== player.q.playing || !m._play.firstChild) {
+    m._lastPlaying = player.q.playing;
+    m._play.replaceChildren(icon(player.q.playing ? 'pause' : 'play', 'pop'));
+  }
 }
 
 // ---------------- 再生画面 ----------------
@@ -218,7 +221,10 @@ function renderNp(force = false) {
   el.classList.toggle('paused', !player.q.playing);
   el.classList.remove('mode-art', 'mode-lyrics', 'mode-queue');
   el.classList.add(`mode-${np.mode}`);
-  np.playBtn.replaceChildren(icon(player.q.playing ? 'pause' : 'play'));
+  if (np.lastPlaying !== player.q.playing) {
+    np.lastPlaying = player.q.playing;
+    np.playBtn.replaceChildren(icon(player.q.playing ? 'pause' : 'play', 'pop'));
+  }
   np.shuffleBtn.classList.toggle('on', player.q.shuffle);
   np.repeatBtn.classList.toggle('on', player.q.repeat !== 'off');
   np.repeatBtn.classList.toggle('mode-one', player.q.repeat === 'one');

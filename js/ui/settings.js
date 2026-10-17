@@ -59,6 +59,9 @@ export function mountSettings(view) {
         toggle('karaoke', 'カラオケ風に1文字ずつ塗る', 'オフにすると、今の行だけを明るくします'),
       ),
 
+      h('div.group-title', '操作'),
+      h('div.group', toggle('haptics', '触覚フィードバック', 'ボタンを押したときに軽く振動します（iOS 18 以降。iPhone の「サウンドと触覚」の「システムの触覚」がオンのとき）')),
+
       h('div.group-title', '動画'),
       h(
         'div.group',

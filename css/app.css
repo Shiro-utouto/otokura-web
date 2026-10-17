@@ -74,7 +74,6 @@ textarea {
   transition: transform 0.15s, opacity 0.15s, background 0.15s;
 }
 .icon-btn:active {
-  transform: scale(0.88);
   background: rgba(255, 255, 255, 0.08);
 }
 .icon-btn.accent {
@@ -1602,4 +1601,84 @@ button.cell:active {
   display: grid;
   place-items: center;
   color: var(--sub);
+}
+
+/* ---------- 押したときの「ふにょっ」 ----------
+   押すとすばやく縮み、離すと少し行きすぎてから戻る（ばねの動き）。押したかどうかは feel.js が .pressed で付ける */
+.icon-btn,
+.pill,
+.btn,
+.tile,
+.action,
+.chip-btn,
+.segments button,
+.tab,
+.sync-tap,
+.selbar button,
+.track,
+.artist-row,
+.result,
+.mini,
+button.cell {
+  transition-property: transform, background, color, opacity, box-shadow;
+  transition-duration: 0.55s;
+  transition-timing-function: cubic-bezier(0.25, 1.9, 0.45, 1);
+}
+.pressed {
+  transition-duration: 0.09s !important;
+  transition-timing-function: ease-out !important;
+}
+.icon-btn.pressed,
+.chip-btn.pressed,
+.tab.pressed,
+.selbar button.pressed,
+.segments button.pressed {
+  transform: scale(0.84);
+}
+.transport .icon-btn.pressed {
+  transform: scale(0.78);
+  background: rgba(255, 255, 255, 0.12);
+}
+.pill.pressed,
+.btn.pressed,
+.sync-tap.pressed {
+  transform: scale(0.94);
+}
+.tile.pressed {
+  transform: scale(0.95);
+}
+.mini.pressed {
+  transform: scale(0.97);
+}
+.track.pressed,
+.artist-row.pressed,
+.result.pressed,
+button.cell.pressed,
+.action.pressed {
+  transform: scale(0.985);
+  background: rgba(255, 255, 255, 0.06);
+}
+.lyrics .ln.pressed {
+  transform: scale(0.97);
+}
+
+/* 再生・一時停止のアイコンが切り替わるときにぽよんと出る */
+.icon-btn .icon.pop {
+  animation: pop 0.45s cubic-bezier(0.25, 1.9, 0.45, 1);
+}
+@keyframes pop {
+  from {
+    transform: scale(0.55);
+    opacity: 0.4;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pressed,
+  .icon-btn .icon.pop {
+    transform: none !important;
+    animation: none !important;
+  }
+}
+.track.dragging {
+  transition: none !important;
 }
