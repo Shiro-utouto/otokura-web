@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 108 108">
+  <!-- Android 版と同じ、音符と波のオリジナルアイコン -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1c1630"/>
+      <stop offset="1" stop-color="#101014"/>
+    </linearGradient>
+  </defs>
+  <rect width="108" height="108" fill="url(#bg)"/>
+  <circle cx="54" cy="54" r="30" fill="#2a2146"/>
+  <path fill="#ff7ab6" d="M58,34 L58,62 L54,62 L54,34 Z M58,34 C64,36 70,40 70,48 C67,44 63,42 58,42 Z"/>
+  <ellipse cx="56" cy="60" rx="7" ry="6" fill="#ff7ab6"/>
+  <path d="M36,74 Q42,70 48,74 T60,74 T72,74" fill="none" stroke="#b69cff" stroke-width="3" stroke-linecap="round"/>
+</svg>

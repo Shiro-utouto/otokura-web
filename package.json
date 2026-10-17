@@ -1,0 +1,9 @@
+{
+  "name": "otokura-web",
+  "private": true,
+  "type": "module",
+  "description": "音蔵 iPhone 版（Web アプリ）",
+  "scripts": {
+    "test": "node --test tests/*.mjs"
+  }
+}
