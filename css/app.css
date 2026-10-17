@@ -1752,3 +1752,8 @@ input[type='search']::-webkit-search-decoration {
   appearance: none;
   display: none;
 }
+
+/* 再生画面の「…」は1つだけ：ジャケットのときは曲名の横、歌詞・キューのときは右上 */
+.np.mode-art .np-top-more {
+  visibility: hidden;
+}

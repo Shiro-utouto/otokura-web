@@ -5,8 +5,8 @@ import * as player from '../player.js';
 import { parseLrc, withoutCredits } from '../lrc.js';
 import { litChars, currentIndex, chars } from '../karaoke.js';
 import { formatDuration } from '../localFiles.js';
-import { trackMenu, trackHeader, addToPlaylistFlow, editTrack, eq } from './common.js';
-import { openLyricsSearch, openLyricsEditor, openSyncEditor, openOffsetSheet } from './lyricsTools.js';
+import { trackHeader, addToPlaylistFlow, editTrack, eq, deleteFlow } from './common.js';
+import { openLyricsSearch, openLyricsEditor, openSyncEditor, openOffsetSheet, importLyricsFile } from './lyricsTools.js';
 import { openArtist } from './library.js';
 
 const np = {
@@ -92,7 +92,7 @@ function buildNp() {
     'div.np-top',
     iconButton('down', '閉じる', () => closeNowPlaying()),
     (np.badge = h('div', { style: { fontSize: '13px', color: 'rgba(255,255,255,.7)', fontWeight: 600 } })),
-    iconButton('more', 'メニュー', () => npMenu()),
+    iconButton('more', 'メニュー', () => npMenu(), 'np-top-more'),
   );
   np.art = h('div.np-art-wrap');
   np.miniHead = h('div.np-mini-head');
@@ -206,6 +206,15 @@ function npMenu() {
       { label: '歌詞を編集・貼り付け', icon: 'lyrics', onSelect: () => openLyricsEditor(t) },
       { label: 'タイミングを合わせる', icon: 'time', onSelect: () => openSyncEditor(t) },
       { label: '歌詞の表示タイミングを調整', icon: 'time', onSelect: () => openOffsetSheet(t) },
+      { label: '歌詞ファイル（.lrc）を読み込む', icon: 'folder', onSelect: () => importLyricsFile(t) },
+      {
+        label: 'ライブラリから削除',
+        icon: 'trash',
+        danger: true,
+        onSelect: async () => {
+          if (await deleteFlow([t.id])) closeNowPlaying();
+        },
+      },
     ],
     { header: trackHeader(t) },
   );
@@ -243,7 +252,7 @@ function renderNp(force = false) {
     np.miniHead.replaceChildren(cover(t), h('div.meta', h('div.t', t.title), h('div.a', t.artist || 'アーティスト不明')));
     np.info.replaceChildren(
       h('div.meta', h('div.t', t.title), h('div.a', t.artist || 'アーティスト不明')),
-      iconButton('more', '曲のメニュー', () => trackMenu(t)),
+      iconButton('more', 'メニュー', () => npMenu()),
     );
     if (np.mode === 'lyrics') mountLyrics(t);
     else if (np.mode === 'queue') mountQueue();
