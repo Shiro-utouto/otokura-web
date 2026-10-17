@@ -40,7 +40,6 @@ export const q = {
 
 export { audio };
 
-let mediaUrl = null;
 let loadedId = null;
 
 function shuffled(arr) {
@@ -62,6 +61,57 @@ export function durationMs() {
   return q.current?.durationMs || 0;
 }
 
+// 曲の blob URL の控え（今の曲と、前後の曲）。
+// ロック画面やコントロールセンターから「次へ」を押したとき、保存場所（IndexedDB）を読むのを待っていると、
+// その間に iPhone が「指で押した直後」の扱いを外してしまい、再生できずに音が消えることがある。
+// 先に用意しておいて、押されたらすぐ（await を挟まずに）再生する
+const urlCache = new Map(); // "曲ID/ファイル名" → blob URL
+const keyOf = (t) => `${t.id}/${t.mediaFile}`;
+
+async function urlFor(t) {
+  const key = keyOf(t);
+  if (urlCache.has(key)) return urlCache.get(key);
+  const blob = await files.get(t.id, t.mediaFile);
+  if (!blob) return null;
+  const url = URL.createObjectURL(blob);
+  urlCache.set(key, url);
+  return url;
+}
+
+function neighborIds() {
+  const n = q.order.length;
+  if (!n || q.pos < 0) return [];
+  const ids = [q.order[q.pos]];
+  if (q.pos + 1 < n) ids.push(q.order[q.pos + 1]);
+  else if (q.repeat === 'all') ids.push(q.order[0]);
+  if (q.pos > 0) ids.push(q.order[q.pos - 1]);
+  return ids;
+}
+
+let prefetching = null;
+async function prefetch() {
+  const tracks = neighborIds().map((id) => store.getTrack(id)).filter(Boolean);
+  const keep = new Set(tracks.map(keyOf));
+  for (const [key, url] of urlCache) {
+    if (!keep.has(key)) {
+      URL.revokeObjectURL(url);
+      urlCache.delete(key);
+    }
+  }
+  for (const t of tracks) await urlFor(t).catch(() => null);
+}
+function schedulePrefetch() {
+  prefetching = (prefetching || Promise.resolve()).then(prefetch).catch(() => {});
+}
+
+function playNow() {
+  audio.play().catch((e) => {
+    if (e.name === 'AbortError') return;
+    q.error = '再生できませんでした。もう一度押してください';
+    emit();
+  });
+}
+
 async function load(autoplay) {
   const t = q.current;
   q.error = null;
@@ -73,25 +123,20 @@ async function load(autoplay) {
     return;
   }
   if (loadedId !== t.id) {
-    const blob = await files.get(t.id, t.mediaFile);
-    if (!blob) {
+    // 用意してあればすぐ使う（await しない）
+    const url = urlCache.get(keyOf(t)) || (await urlFor(t));
+    if (!url) {
       q.error = 'この曲のファイルがありません（音声を含めずに復元した曲かもしれません）';
       emit();
       return;
     }
-    if (mediaUrl) URL.revokeObjectURL(mediaUrl);
-    mediaUrl = URL.createObjectURL(blob);
-    audio.src = mediaUrl;
+    if (q.currentId !== t.id) return; // 読んでいる間に別の曲になった
+    audio.src = url;
     loadedId = t.id;
-    await updateMediaSession(t);
-  }
-  if (autoplay) {
-    try {
-      await audio.play();
-    } catch (e) {
-      if (e.name !== 'AbortError') q.error = '再生できませんでした。もう一度押してください';
-    }
-  }
+    if (autoplay) playNow();
+    updateMediaSession(t);
+  } else if (autoplay) playNow();
+  schedulePrefetch();
   saveSession();
   emit();
 }
@@ -276,6 +321,7 @@ function onTracksChanged() {
 
 let saveTimer = null;
 function saveSession() {
+  schedulePrefetch();
   clearTimeout(saveTimer);
   saveTimer = setTimeout(() => {
     kv.set('session', {
@@ -414,7 +460,8 @@ export function init() {
         /* 対応していない操作 */
       }
     };
-    set('play', () => toggle());
+    // ロック画面の「再生」：曲が用意できていれば、待たずにすぐ鳴らす
+    set('play', () => (loadedId && loadedId === q.currentId ? playNow() : toggle()));
     set('pause', () => audio.pause());
     set('nexttrack', () => next());
     set('previoustrack', () => prev());
