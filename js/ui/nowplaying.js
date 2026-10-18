@@ -181,6 +181,7 @@ export function openNowPlaying(mode) {
   np.open = true;
   np.el.classList.add('open');
   np.snap = true;
+  if (np.mode === 'lyrics') np.panelFor = null;
   renderNp(true);
   startLoop();
 }
@@ -561,12 +562,20 @@ export function mountNowPlaying() {
   renderMini();
   startLoop();
   // 画面が隠れている間は止まり、戻ったら位置を合わせ直す
-  document.addEventListener('visibilitychange', () => {
-    if (!document.hidden) {
-      np.curIdx = -2;
-      lastT = 0;
+  // 画面を消したり、ほかのアプリから戻ったりしたあと、iPhone では歌詞の色（カラオケ）だけが描き変わらなく
+  // なることがあった（スクロールやぼかしは動くのに、今の行が光らない。アプリを閉じると直る）。
+  // 戻ってきたら歌詞を作り直して、確実に描き直させる
+  const resume = () => {
+    if (document.hidden) return;
+    np.curIdx = -2;
+    lastT = 0;
+    if (np.mode === 'lyrics' && player.q.current) {
+      np.panelFor = null;
+      renderNp();
     }
-  });
+  };
+  document.addEventListener('visibilitychange', resume);
+  window.addEventListener('pageshow', resume);
 }
 
 export { eq };

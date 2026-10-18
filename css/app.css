@@ -991,9 +991,6 @@ body.has-mini .view {
 .lyrics.karaoke .ln.cur {
   color: rgba(255, 255, 255, 0.45);
 }
-.lyrics .ln.cur .c {
-  transition: color 0.12s linear;
-}
 .lyrics .ln.cur .c.lit {
   color: #fff;
 }
