@@ -89,107 +89,6 @@ function renderMini() {
 }
 
 
-// ---------------- 横向きの左側の再生パネル ----------------
-// 横向きのときは、ミニプレーヤーの代わりに、左側に今の曲と操作ボタンをいつも出す（右側はライブラリなどのリスト）
-function buildSide() {
-  const el = h('aside.side', { 'aria-label': '再生中の曲' });
-  document.body.append(el);
-  return el;
-}
-
-function seekable(el, fill, onPreview) {
-  let dragging = null;
-  const at = (e) => {
-    const r = el.getBoundingClientRect();
-    return Math.max(0, Math.min(1, (e.clientX - r.left) / r.width));
-  };
-  el.addEventListener('pointerdown', (e) => {
-    el.setPointerCapture(e.pointerId);
-    el.classList.add('active');
-    dragging = at(e);
-    onPreview(dragging);
-  });
-  el.addEventListener('pointermove', (e) => {
-    if (dragging == null) return;
-    dragging = at(e);
-    onPreview(dragging);
-  });
-  const end = () => {
-    if (dragging == null) return;
-    player.seek(dragging * player.durationMs());
-    dragging = null;
-    el.classList.remove('active');
-  };
-  el.addEventListener('pointerup', end);
-  el.addEventListener('pointercancel', end);
-  return () => dragging;
-}
-
-function renderSide() {
-  const el = np.side;
-  if (!el) return;
-  const t = player.q.current;
-  if (!t) {
-    if (el.dataset.id === '') return;
-    el.dataset.id = '';
-    const ids = [...store.state.tracks].sort((a, b) => (b.addedAt || 0) - (a.addedAt || 0)).map((x) => x.id);
-    el.replaceChildren(
-      h(
-        'div.side-empty',
-        h('img', { src: 'icons/icon.svg', alt: '', class: 'side-logo' }),
-        h('div.side-hint', ids.length ? '曲を選ぶと、ここで操作できます' : '右上の ＋ から曲を追加してください'),
-        ids.length ? h('button.pill', { type: 'button', onclick: () => player.shuffleAll(ids) }, icon('shuffle'), 'シャッフル再生') : null,
-      ),
-    );
-    el.style.removeProperty('--c1');
-    return;
-  }
-  if (el.dataset.id !== t.id || el._sig !== headerSig(t)) {
-    el.dataset.id = t.id;
-    el._sig = headerSig(t);
-    const [c1, c2] = trackColors(t);
-    el.style.setProperty('--c1', c1);
-    el.style.setProperty('--c2', c2);
-    const fill = h('i');
-    const bar = h('div.seek', h('div.track-line', fill));
-    const cur = h('span', '0:00');
-    const rest = h('span', '-0:00');
-    el._play = iconButton('play', '再生・一時停止', () => player.toggle(), 'big');
-    el._lastPlaying = null;
-    el._paint = (preview) => {
-      const dur = player.durationMs();
-      const pos = preview != null ? preview * dur : player.currentTimeMs();
-      fill.style.width = `${dur ? Math.min(100, (pos / dur) * 100) : 0}%`;
-      cur.textContent = formatDuration(pos);
-      rest.textContent = `-${formatDuration(Math.max(0, dur - pos))}`;
-    };
-    el._dragging = seekable(bar, fill, (f) => el._paint(f));
-    const art = cover(t, 'side-art');
-    art.addEventListener('click', () => openNowPlaying());
-    el.replaceChildren(
-      h('div.side-bg'),
-      art,
-      h('div.side-meta', { onclick: () => openNowPlaying() }, h('div.t', t.title), h('div.a', t.artist || 'アーティスト不明')),
-      h('div.side-seek', bar, h('div.times', cur, rest)),
-      h('div.transport', iconButton('prev', '前の曲', () => player.prev()), el._play, iconButton('next', '次の曲', () => player.next())),
-      h(
-        'div.np-bottom',
-        iconButton('lyrics', '歌詞', () => openNowPlaying('lyrics')),
-        (el._shuffle = iconButton('shuffle', 'シャッフル', () => player.setShuffle(!player.q.shuffle))),
-        (el._repeat = iconButton('repeat', 'リピート', () => player.cycleRepeat())),
-        iconButton('queue', '再生キュー', () => openNowPlaying('queue')),
-      ),
-    );
-  }
-  if (el._lastPlaying !== player.q.playing) {
-    el._lastPlaying = player.q.playing;
-    el._play.replaceChildren(icon(player.q.playing ? 'pause' : 'play', 'pop'));
-  }
-  el._shuffle.classList.toggle('on', player.q.shuffle);
-  el._repeat.classList.toggle('on', player.q.repeat !== 'off');
-  el._repeat.classList.toggle('mode-one', player.q.repeat === 'one');
-}
-
 // ---------------- 再生画面 ----------------
 function buildNp() {
   const el = h('div.np', { role: 'dialog', 'aria-label': '再生画面' });
@@ -400,6 +299,7 @@ async function mountLyrics(t) {
   np.curIdx = -2;
   np.lyrics = null;
   np.lyricsFor = t.id;
+  np.touching = false;
   const raw = await store.getLyrics(t.id);
   if (np.lyricsFor !== t.id || np.lyricsBox !== box) return;
   if (!raw || !raw.trim()) {
@@ -450,10 +350,7 @@ async function mountLyrics(t) {
     np.touching = true;
     userScrolled();
   }, { passive: true });
-  box.addEventListener('touchend', () => {
-    np.touching = false;
-    np.manualUntil = performance.now() + 3000;
-  }, { passive: true });
+
   box.addEventListener('wheel', userScrolled, { passive: true });
   box.addEventListener('scroll', () => {
     // 自分で動かした分は数えない
@@ -475,7 +372,7 @@ function setCurrentLine(idx) {
       els[i].textContent = np.lyrics.lines[i].text;
     }
   }
-  np.intro.style.display = idx < 0 && np.lyrics.lines[0]?.startMs > 2500 ? '' : 'none';
+  if (np.intro) np.intro.style.display = idx < 0 && np.lyrics.lines[0]?.startMs > 2500 ? '' : 'none';
   for (let i = 0; i < els.length; i++) {
     const d = Math.abs(i - idx);
     els[i].classList.toggle('past', i < idx);
@@ -609,19 +506,25 @@ function paintTime() {
 
 let lastT = 0;
 function loop(now) {
+  // 先に次のフレームを頼んでおく。途中で失敗しても、歌詞やシークバーの動きが止まったままにならないように
+  // （前は1回失敗すると、アプリを閉じるまで歌詞が動かなくなった）
+  np.raf = requestAnimationFrame(loop);
   const dt = lastT ? (now - lastT) / 1000 : 0.016;
   lastT = now;
-  if (np.mini._bar) {
-    const d = player.durationMs();
-    np.mini._bar.style.width = `${d ? Math.min(100, (player.currentTimeMs() / d) * 100) : 0}%`;
+  try {
+    if (np.mini._bar) {
+      const d = player.durationMs();
+      np.mini._bar.style.width = `${d ? Math.min(100, (player.currentTimeMs() / d) * 100) : 0}%`;
+    }
+    if (np.open) {
+      paintTime();
+      if (np.mode === 'lyrics') lyricsFrame(dt);
+    }
+  } catch (e) {
+    console.warn('画面の更新に失敗', e);
+    // 歌詞の状態を作り直して、次のフレームからやり直す
+    np.curIdx = -2;
   }
-  // 左の再生パネルは横向きのときだけ見えている（position: fixed なので offsetParent では分からない）
-  if (np.side?._paint && np.side.clientWidth > 0 && np.side._dragging() == null) np.side._paint();
-  if (np.open) {
-    paintTime();
-    if (np.mode === 'lyrics') lyricsFrame(dt);
-  }
-  np.raf = requestAnimationFrame(loop);
 }
 
 function startLoop() {
@@ -629,12 +532,19 @@ function startLoop() {
 }
 
 export function mountNowPlaying() {
+  // 指を離したのが歌詞の外でも、途中で取り消されても（touchcancel）、触っている状態のまま残らないようにする
+  // （前は残ってしまい、歌詞が今の行を追いかけなくなることがあった）
+  const release = () => {
+    if (!np.touching) return;
+    np.touching = false;
+    np.manualUntil = performance.now() + 3000;
+  };
+  document.addEventListener('touchend', release, { passive: true, capture: true });
+  document.addEventListener('touchcancel', release, { passive: true, capture: true });
   np.mini = buildMini();
-  np.side = buildSide();
   np.el = buildNp();
   player.subscribe(() => {
     renderMini();
-    renderSide();
     renderNp();
   });
   store.subscribe((what) => {
@@ -643,15 +553,12 @@ export function mountNowPlaying() {
     if (what === `lyrics:${id}` && np.mode === 'lyrics' && !np.open) np.panelFor = null;
     if (what === 'tracks' || what === 'all') {
       np.mini.dataset.id = '';
-      if (np.side) np.side.dataset.id = 'x';
       renderMini();
-      renderSide();
       renderNp();
     }
     if (what === 'settings' && np.mode === 'lyrics' && np.lyricsBox) np.lyricsBox.classList.toggle('karaoke', !!store.state.settings.karaoke);
   });
   renderMini();
-  renderSide();
   startLoop();
   // 画面が隠れている間は止まり、戻ったら位置を合わせ直す
   document.addEventListener('visibilitychange', () => {

@@ -1758,10 +1758,6 @@ input[type='search']::-webkit-search-decoration {
   visibility: hidden;
 }
 
-.side {
-  display: none;
-}
-
 /* ---------- 横向き（iPhone を横にしたとき） ----------
    iPhone の Web アプリは向きを固定できないので、横向き用の並べ方を用意する。
    再生画面は「左：曲名と操作ボタン」「右：ジャケット・歌詞・キュー」の2列にする */
@@ -1771,126 +1767,33 @@ input[type='search']::-webkit-search-decoration {
     --safe-right: env(safe-area-inset-right, 0px);
     --tabbar-h: calc(46px + var(--safe-bottom));
   }
-  /* 左：再生パネル（--side の幅）、右：ライブラリなどのリストとタブバー。左右のカメラの出っぱりも避ける */
-  :root {
-    --side: calc(38vw + var(--safe-left));
-  }
+  /* 左右のカメラの出っぱりを避ける */
   .view {
-    left: var(--side);
+    left: var(--safe-left);
     right: var(--safe-right);
-    padding-bottom: 24px;
-  }
-  body.has-mini .view {
-    padding-bottom: 24px;
   }
   .tabbar {
-    left: var(--side);
+    padding-left: var(--safe-left);
     padding-right: var(--safe-right);
   }
-  .mini,
-  body.has-mini .mini {
-    display: none !important;
+  /* ミニプレーヤーは縦向きと同じ形で、真ん中に広がりすぎない幅で出す */
+  .mini {
+    left: max(calc(var(--safe-left) + 8px), calc(50% - 300px));
+    right: max(calc(var(--safe-right) + 8px), calc(50% - 300px));
+    height: 56px;
   }
-  .side {
-    position: fixed;
-    top: 0;
-    bottom: 0;
-    left: 0;
-    width: var(--side);
-    z-index: 21;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    padding: calc(var(--safe-top) + 10px) 14px calc(var(--safe-bottom) + 8px) calc(var(--safe-left) + 14px);
-    background: linear-gradient(160deg, color-mix(in srgb, var(--c1, #2a2146) 70%, #101014), color-mix(in srgb, var(--c2, #17161e) 55%, #101014));
-    border-right: 0.5px solid var(--line);
-    overflow: hidden;
-    color: #fff;
+  .mini .cover {
+    width: 42px;
+    height: 42px;
   }
-  .side-art {
-    width: min(42vh, 30vw);
-    aspect-ratio: 1;
-    height: auto;
-    border-radius: 12px;
-    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45);
-    flex: none;
+  body.has-mini .view {
+    padding-bottom: 140px;
   }
-  .side-meta {
-    width: 100%;
-    text-align: center;
-    min-width: 0;
-    margin-top: 4px;
-  }
-  .side-meta .t {
-    font-weight: 700;
-    font-size: 16px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  .side-meta .a {
-    font-size: 13px;
-    color: rgba(255, 255, 255, 0.7);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  .side-seek {
-    width: 100%;
-    padding: 0 6px;
-  }
-  .side .transport {
-    margin: 0;
-    justify-content: center;
-    gap: 14px;
-  }
-  .side .transport .icon-btn {
-    color: #fff;
-    width: 46px;
-    height: 46px;
-  }
-  .side .transport .icon-btn .icon {
-    width: 28px;
-    height: 28px;
-  }
-  .side .transport .icon-btn.big .icon {
-    width: 36px;
-    height: 36px;
-  }
-  .side .np-bottom {
-    width: 100%;
-    justify-content: space-around;
-    padding: 0;
-  }
-  .side .np-bottom .icon-btn {
-    width: 38px;
-    height: 38px;
-    color: rgba(255, 255, 255, 0.75);
-  }
-  .side .np-bottom .icon-btn.on {
-    color: #fff;
-    background: rgba(255, 255, 255, 0.18);
-  }
-  .side-empty {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 14px;
-    text-align: center;
-    color: var(--sub);
-    font-size: 14px;
-  }
-  .side-logo {
-    width: 96px;
-    height: 96px;
-    border-radius: 22px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
-  }
-  .side-empty .pill {
-    flex: none;
-    padding: 0 22px;
+  /* 曲の一覧は横に2列（横長の画面で間延びしないように） */
+  .view .list {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    column-gap: 8px;
   }
   .tab {
     flex-direction: row;
@@ -1902,8 +1805,8 @@ input[type='search']::-webkit-search-decoration {
     height: 21px;
   }
   .selbar {
-    left: calc(var(--side) + 10px);
-    right: calc(var(--safe-right) + 10px);
+    left: max(calc(var(--safe-left) + 10px), calc(50% - 320px));
+    right: max(calc(var(--safe-right) + 10px), calc(50% - 320px));
   }
   .big-title {
     font-size: 28px;
@@ -1928,8 +1831,7 @@ input[type='search']::-webkit-search-decoration {
     top: 8px;
   }
   .toast {
-    left: calc(var(--side) + (100vw - var(--side)) / 2);
-    bottom: calc(var(--tabbar-h) + 20px);
+    bottom: calc(var(--tabbar-h) + 70px);
   }
 
   /* 再生画面 */

@@ -4,6 +4,7 @@ import * as store from '../store.js';
 import * as player from '../player.js';
 import { trackRow, addSongsFlow, addToPlaylistFlow, deleteFlow, progressCard } from './common.js';
 import { installHint } from './install.js';
+import { openNowPlaying } from './nowplaying.js';
 
 const ui = {
   root: null,
@@ -41,6 +42,13 @@ function refreshPlaying() {
   lastPlaying = id;
   lastPlayingState = player.q.playing;
   render();
+}
+
+// 横向きのときは、曲を選んだらそのまま全画面の再生画面にする（横向きのリストの下に小さく出すより見やすいので）
+const landscape = window.matchMedia('(orientation: landscape) and (max-height: 600px)');
+function playAndMaybeOpen(ids, id) {
+  player.playList(ids, id, { shuffle: false });
+  if (landscape.matches) openNowPlaying();
 }
 
 function sortedTracks() {
@@ -241,7 +249,7 @@ function songList(tracks, opts = {}) {
           if (ui.selecting) {
             ui.selecting.has(t.id) ? ui.selecting.delete(t.id) : ui.selecting.add(t.id);
             render();
-          } else player.playList(ids, t.id, { shuffle: false });
+          } else playAndMaybeOpen(ids, t.id);
         },
         onLongPress: () => {
           if (ui.selecting) return;
@@ -552,7 +560,7 @@ function searchResults(query) {
   if (tracks.length) {
     wrap.append(h('div.section-title', '曲'));
     const ids = tracks.map((t) => t.id);
-    for (const t of tracks) wrap.append(trackRow(t, { showSize: true, onTap: () => player.playList(ids, t.id, { shuffle: false }) }));
+    for (const t of tracks) wrap.append(trackRow(t, { showSize: true, onTap: () => playAndMaybeOpen(ids, t.id) }));
   }
   return wrap;
 }
