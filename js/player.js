@@ -150,8 +150,34 @@ function toDataUrl(blob) {
   });
 }
 
+/**
+ * ロック画面・コントロールセンターのボタン。
+ * iPhone は最初から「10秒戻る / 10秒進む」を出すので、それを消さないと「前の曲 / 次の曲」が出ない
+ * （seekbackward / seekforward を null にする）。曲を切り替えるたびに付け直す
+ */
+function setupRemoteControls() {
+  if (!('mediaSession' in navigator)) return;
+  const ms = navigator.mediaSession;
+  const set = (a, fn) => {
+    try {
+      ms.setActionHandler(a, fn);
+    } catch {
+      /* 対応していない操作 */
+    }
+  };
+  // ロック画面の「再生」：曲が用意できていれば、待たずにすぐ鳴らす
+  set('play', () => (loadedId && loadedId === q.currentId ? playNow() : toggle()));
+  set('pause', () => audio.pause());
+  set('nexttrack', () => next());
+  set('previoustrack', () => prev());
+  set('seekto', (d) => seek(d.seekTime * 1000));
+  set('seekbackward', null);
+  set('seekforward', null);
+}
+
 async function updateMediaSession(t) {
   if (!('mediaSession' in navigator)) return;
+  setupRemoteControls();
   let artwork = [];
   if (t.thumbFile) {
     const b = await files.get(t.id, t.thumbFile);
@@ -451,22 +477,7 @@ export function init() {
       }
     }
   });
-  if ('mediaSession' in navigator) {
-    const ms = navigator.mediaSession;
-    const set = (a, h) => {
-      try {
-        ms.setActionHandler(a, h);
-      } catch {
-        /* 対応していない操作 */
-      }
-    };
-    // ロック画面の「再生」：曲が用意できていれば、待たずにすぐ鳴らす
-    set('play', () => (loadedId && loadedId === q.currentId ? playNow() : toggle()));
-    set('pause', () => audio.pause());
-    set('nexttrack', () => next());
-    set('previoustrack', () => prev());
-    set('seekto', (d) => seek(d.seekTime * 1000));
-  }
+  setupRemoteControls();
   store.subscribe((what) => {
     if (what === 'tracks' || what === 'all') onTracksChanged();
   });
