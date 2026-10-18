@@ -20,6 +20,13 @@ const np = {
   lineEls: [],
   curIdx: -2,
   manualUntil: 0,
+  userScrolled: false,
+  returning: false,
+  snap: false,
+  lastSetTop: -1,
+  boxH: 0,
+  panelFor: null,
+  headerSig: null,
   touching: false,
   scrollY: 0,
   scrollV: 0,
@@ -127,6 +134,7 @@ function buildNp() {
     np.seeking = null;
     np.seekEl.classList.remove('active');
     np.manualUntil = 0;
+    np.userScrolled = false;
   };
   np.seekEl.addEventListener('pointerup', endSeek);
   np.seekEl.addEventListener('pointercancel', endSeek);
@@ -163,6 +171,7 @@ export function openNowPlaying() {
   if (!player.q.current) return;
   np.open = true;
   np.el.classList.add('open');
+  np.snap = true;
   renderNp(true);
   startLoop();
 }
@@ -220,6 +229,20 @@ function npMenu() {
   );
 }
 
+function headerSig(t) {
+  return [t.id, t.title, t.artist, t.thumbFile, (t.colors || []).join(), t.mediaFile].join('|');
+}
+
+function renderHeader(t) {
+  const [c1, c2, c3] = trackColors(t);
+  np.bg.style.setProperty('--c1', c1);
+  np.bg.style.setProperty('--c2', c2);
+  np.bg.style.setProperty('--c3', c3);
+  np.art.replaceChildren(cover(t, 'np-art'));
+  np.miniHead.replaceChildren(cover(t), h('div.meta', h('div.t', t.title), h('div.a', t.artist || 'アーティスト不明')));
+  np.info.replaceChildren(h('div.meta', h('div.t', t.title), h('div.a', t.artist || 'アーティスト不明')), iconButton('more', 'メニュー', () => npMenu()));
+}
+
 function renderNp(force = false) {
   const t = player.q.current;
   if (!t) {
@@ -242,18 +265,15 @@ function renderNp(force = false) {
   np.err.textContent = player.q.error || '';
 
   const changed = np.trackId !== t.id;
-  if (changed || force) {
+  const sig = headerSig(t);
+  if (changed || force || np.headerSig !== sig) {
+    np.headerSig = sig;
+    renderHeader(t);
+  }
+  // 歌詞やキューは、曲かモードが変わったときだけ作り直す（作り直すとスクロールが一番上に戻ってしまう）
+  if (changed || np.panelFor !== `${t.id}:${np.mode}`) {
     np.trackId = t.id;
-    const [c1, c2, c3] = trackColors(t);
-    np.bg.style.setProperty('--c1', c1);
-    np.bg.style.setProperty('--c2', c2);
-    np.bg.style.setProperty('--c3', c3);
-    np.art.replaceChildren(cover(t, 'np-art'));
-    np.miniHead.replaceChildren(cover(t), h('div.meta', h('div.t', t.title), h('div.a', t.artist || 'アーティスト不明')));
-    np.info.replaceChildren(
-      h('div.meta', h('div.t', t.title), h('div.a', t.artist || 'アーティスト不明')),
-      iconButton('more', 'メニュー', () => npMenu()),
-    );
+    np.panelFor = `${t.id}:${np.mode}`;
     if (np.mode === 'lyrics') mountLyrics(t);
     else if (np.mode === 'queue') mountQueue();
     else np.panel.replaceChildren();
@@ -303,25 +323,34 @@ async function mountLyrics(t) {
       const off = store.getTrack(t.id)?.lyricsOffsetMs || 0;
       player.seek(Math.max(0, l.startMs - off));
       np.manualUntil = 0;
+      np.userScrolled = false;
       if (!player.q.playing) player.toggle();
     });
     np.lineEls.push(el);
     box.append(el);
   });
   box.append(h('div.lyr-space.bottom'));
-  // 指でスクロールしたら3秒は自動スクロールしない
+  // 指でスクロールしたら、最後に動いてから3秒は自動スクロールしない（指を離したあとの慣性のスクロール中も数える）
+  const userScrolled = () => {
+    np.manualUntil = performance.now() + 3000;
+    np.userScrolled = true;
+    box.classList.add('manual');
+  };
   box.addEventListener('touchstart', () => {
     np.touching = true;
-    box.classList.add('manual');
+    userScrolled();
   }, { passive: true });
   box.addEventListener('touchend', () => {
     np.touching = false;
     np.manualUntil = performance.now() + 3000;
   }, { passive: true });
-  box.addEventListener('wheel', () => {
-    np.manualUntil = performance.now() + 3000;
-    box.classList.add('manual');
+  box.addEventListener('wheel', userScrolled, { passive: true });
+  box.addEventListener('scroll', () => {
+    // 自分で動かした分は数えない
+    if (Math.abs(box.scrollTop - np.lastSetTop) > 2 && np.userScrolled) np.manualUntil = performance.now() + 3000;
   }, { passive: true });
+  sizeSpacers(box);
+  np.snap = true;
   np.scrollY = box.scrollTop;
   np.scrollV = 0;
 }
@@ -387,24 +416,49 @@ function lyricsFrame(dt) {
   paintKaraoke(pos);
 
   const now = performance.now();
-  const manual = np.touching || now < np.manualUntil;
+  // 一時停止中に指で動かしたときは、再生を始めるまでそのままにする
+  const manual = np.touching || now < np.manualUntil || (np.userScrolled && !player.q.playing);
   if (manual) {
     np.scrollY = box.scrollTop;
     np.scrollV = 0;
     return;
   }
+  const returning = np.userScrolled;
+  np.userScrolled = false;
+  if (returning) np.returning = true;
   box.classList.remove('manual');
+  if (box.clientHeight !== np.boxH) sizeSpacers(box);
   const target = idx >= 0 && np.lineEls[idx] ? np.lineEls[idx] : np.intro;
   if (!target) return;
-  const goal = Math.max(0, target.offsetTop - box.clientHeight * 0.28);
-  // ばねのように動かす
-  const k = 120;
-  const c = 2 * Math.sqrt(k) * 0.9;
-  const step = Math.min(dt, 0.05);
-  np.scrollV += (k * (goal - np.scrollY) - c * np.scrollV) * step;
-  np.scrollY += np.scrollV * step;
-  if (Math.abs(goal - np.scrollY) < 0.5 && Math.abs(np.scrollV) < 1) np.scrollY = goal;
+  const goal = Math.max(0, Math.min(box.scrollHeight - box.clientHeight, target.offsetTop - box.clientHeight * 0.28));
+  if (np.snap) {
+    // 開いたとき・歌詞を作り直したときは、一番上から流れてこないようにすぐ合わせる
+    np.snap = false;
+    np.scrollY = goal;
+    np.scrollV = 0;
+  } else {
+    // ばねのように動かす。指で動かしたあと戻るときは、ゆっくりめ
+    const k = np.returning ? 45 : 120;
+    const c = 2 * Math.sqrt(k) * (np.returning ? 1 : 0.9);
+    const step = Math.min(dt, 0.05);
+    np.scrollV += (k * (goal - np.scrollY) - c * np.scrollV) * step;
+    np.scrollY += np.scrollV * step;
+    if (Math.abs(goal - np.scrollY) < 0.5 && Math.abs(np.scrollV) < 1) {
+      np.scrollY = goal;
+      np.returning = false;
+    }
+  }
   box.scrollTop = np.scrollY;
+  np.lastSetTop = box.scrollTop;
+}
+
+/** 歌詞の上下の余白：今の行が上から3割くらいに来て、最後の行のあとに空きすぎないように、箱の高さから決める */
+function sizeSpacers(box) {
+  const hgt = box.clientHeight || 400;
+  np.boxH = hgt;
+  const [top, bottom] = box.querySelectorAll(':scope > .lyr-space');
+  if (top && !box.classList.contains('plain')) top.style.height = `${Math.round(hgt * 0.28)}px`;
+  if (bottom) bottom.style.height = `${Math.round(hgt * (box.classList.contains('plain') ? 0.2 : 0.4))}px`;
 }
 
 // ---------------- 再生キュー ----------------
@@ -472,12 +526,13 @@ export function mountNowPlaying() {
   store.subscribe((what) => {
     const id = player.q.currentId;
     if (what === `lyrics:${id}` && np.mode === 'lyrics' && np.open) mountLyrics(player.q.current);
+    if (what === `lyrics:${id}` && np.mode === 'lyrics' && !np.open) np.panelFor = null;
     if (what === 'tracks' || what === 'all') {
       np.mini.dataset.id = '';
       renderMini();
-      renderNp(true);
+      renderNp();
     }
-    if (what === 'settings' && np.mode === 'lyrics') renderNp(true);
+    if (what === 'settings' && np.mode === 'lyrics' && np.lyricsBox) np.lyricsBox.classList.toggle('karaoke', !!store.state.settings.karaoke);
   });
   renderMini();
   startLoop();

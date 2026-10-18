@@ -104,7 +104,11 @@ function schedulePrefetch() {
   prefetching = (prefetching || Promise.resolve()).then(prefetch).catch(() => {});
 }
 
+// 本当に再生しようとした回数（「起こす」ための一瞬の再生と区別する）
+let playToken = 0;
+
 function playNow() {
+  playToken++;
   audio.play().catch((e) => {
     if (e.name === 'AbortError') return;
     q.error = '再生できませんでした。もう一度押してください';
@@ -216,6 +220,7 @@ export async function toggle() {
     if (loadedId !== q.currentId) await load(true);
     else
       try {
+        playToken++;
         await audio.play();
       } catch {
         /* 次の操作で */
@@ -418,12 +423,17 @@ async function recoverFromError() {
 // そのあとは曲のデータを読み込んでから（少し待ってから）でも再生できる
 const SILENT = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YQAAAAA=';
 function unlockAudio() {
+  // もう鳴っているなら起こす必要はない（前はここで止めてしまっていた）
+  if (!audio.paused) return;
   if (audio.getAttribute('src') && loadedId) {
     const t = audio.currentTime;
+    const mine = playToken;
     audio.muted = true;
     audio
       .play()
       .then(() => {
+        // 同じタップで「再生」も押されていたら止めない（前は押した曲がすぐ止まることがあった）
+        if (playToken !== mine) return;
         audio.pause();
         audio.currentTime = t;
       })
