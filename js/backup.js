@@ -13,7 +13,7 @@ import { getBookmarks, loadBookmarks, setBookmarks } from './bookmarks.js';
 
 export const BACKUP_FORMAT = 1;
 // 設定の「このアプリについて」に出る版。sw.js の VERSION と同じ番号にする（iPhone で新しい版になったか確かめるため）
-export const APP_VERSION = '12';
+export const APP_VERSION = '13';
 
 const TRACK_ENTRY = /^tracks\/([A-Za-z0-9_-]{1,64})\/([A-Za-z0-9_-][A-Za-z0-9._-]{0,127})$/;
 

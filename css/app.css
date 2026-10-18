@@ -1757,3 +1757,166 @@ input[type='search']::-webkit-search-decoration {
 .np.mode-art .np-top-more {
   visibility: hidden;
 }
+
+/* ---------- 横向き（iPhone を横にしたとき） ----------
+   iPhone の Web アプリは向きを固定できないので、横向き用の並べ方を用意する。
+   再生画面は「左：曲名と操作ボタン」「右：ジャケット・歌詞・キュー」の2列にする */
+@media (orientation: landscape) and (max-height: 600px) {
+  :root {
+    --safe-left: env(safe-area-inset-left, 0px);
+    --safe-right: env(safe-area-inset-right, 0px);
+    --tabbar-h: calc(46px + var(--safe-bottom));
+  }
+  /* 画面の左右のカメラの出っぱりを避ける */
+  .view {
+    left: var(--safe-left);
+    right: var(--safe-right);
+  }
+  .tabbar {
+    padding-left: var(--safe-left);
+    padding-right: var(--safe-right);
+  }
+  .tab {
+    flex-direction: row;
+    gap: 6px;
+    font-size: 12px;
+  }
+  .tab .icon {
+    width: 21px;
+    height: 21px;
+  }
+  .mini,
+  .selbar {
+    left: calc(var(--safe-left) + 10%);
+    right: calc(var(--safe-right) + 10%);
+  }
+  .big-title {
+    font-size: 28px;
+    margin-bottom: 8px;
+  }
+  .grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+  .bm-grid {
+    grid-template-columns: repeat(8, 1fr);
+  }
+  .detail-head .mosaic,
+  .detail-head > .cover {
+    width: min(30vw, 46vh);
+  }
+  .sheet {
+    left: max(var(--safe-left), calc(50% - 300px));
+    right: max(var(--safe-right), calc(50% - 300px));
+    border-radius: 18px 18px 0 0;
+  }
+  .sheet.full {
+    top: 8px;
+  }
+  .toast {
+    bottom: calc(var(--tabbar-h) + 70px);
+  }
+
+  /* 再生画面 */
+  .np {
+    display: grid;
+    grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+    grid-template-rows: auto 1fr auto auto auto 0.4fr;
+    grid-template-areas:
+      'top main'
+      '. main'
+      'info main'
+      'err main'
+      'controls main'
+      '. main';
+    column-gap: 12px;
+    padding: 8px var(--safe-right) calc(var(--safe-bottom) + 6px) var(--safe-left);
+  }
+  .np-handle {
+    display: none;
+  }
+  .np-top {
+    grid-area: top;
+    padding: 0 4px 0 8px;
+  }
+  /* 横向きでは曲名の横の「…」を隠すので、右上の「…」をいつも出す */
+  .np.mode-art .np-top .np-top-more,
+  .np-top .np-top-more {
+    visibility: visible;
+  }
+  .np-main {
+    grid-area: main;
+    min-height: 0;
+  }
+  .np-info {
+    grid-area: info;
+    padding: 0 16px 0 24px;
+  }
+  .np .np-info,
+  .np.mode-lyrics .np-info,
+  .np.mode-queue .np-info {
+    display: flex;
+  }
+  .np-info .icon-btn {
+    display: none;
+  }
+  .np-info .t {
+    font-size: 19px;
+  }
+  .np-info .a {
+    font-size: 15px;
+  }
+  .np .err {
+    grid-area: err;
+  }
+  .np-controls {
+    grid-area: controls;
+    padding: 6px 16px 0 24px;
+  }
+  .transport {
+    margin: 4px 0 2px;
+  }
+  .transport .icon-btn {
+    width: 52px;
+    height: 52px;
+  }
+  .transport .icon-btn .icon {
+    width: 30px;
+    height: 30px;
+  }
+  .transport .icon-btn.big {
+    width: 64px;
+    height: 64px;
+  }
+  .transport .icon-btn.big .icon {
+    width: 40px;
+    height: 40px;
+  }
+  .np-bottom .icon-btn {
+    width: 40px;
+    height: 40px;
+  }
+  /* 右側：曲名は左に出ているので、歌詞の上の小さな見出しは出さない */
+  .np.mode-lyrics .np-mini-head,
+  .np.mode-queue .np-mini-head {
+    display: none;
+  }
+  .np-art-wrap {
+    padding: 8px 16px;
+  }
+  .np-art {
+    width: min(42vw, 78vh);
+  }
+  .lyrics {
+    padding: 0 20px 0 12px;
+  }
+  .lyrics .ln {
+    font-size: 25px;
+    margin-bottom: 16px;
+  }
+  .lyrics.plain .ln {
+    font-size: 20px;
+  }
+  .lyrics-badge {
+    top: 0;
+  }
+}

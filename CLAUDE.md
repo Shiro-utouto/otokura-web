@@ -57,6 +57,7 @@ Ken 個人用の音楽プレーヤーの **iPhone 版（Web アプリ / PWA）**
 - 歌詞のスクロール（`nowplaying.js` の `lyricsFrame`）：指で動かしたら、最後に動いてから3秒（慣性のスクロール中も延ばす）は自動で戻さない。一時停止中に動かしたら再生するまで戻さない。戻るときはゆっくりのばね。曲の情報が変わっただけ（長さの修正など）では歌詞を作り直さない（前は作り直して一番上から「ギュン」と戻っていた。2026-10-18）。開いたときはすぐ今の行に合わせる（`np.snap`）
 - 最初のタッチで audio を「起こす」とき、同じタップで再生も押されていたら止めない（`playToken`。前は押した曲がすぐ止まることがあった）
 - 歌詞の上下の余白は `padding` ではなく、中に置いた `.lyr-space` で作り、高さは箱の高さから決める（上 28%、下 40%。`sizeSpacers`）（`padding: 30vh … 45vh` だと iPhone の画面では箱が縮まず、歌詞が操作ボタンの上にはみ出してボタンが押せなかった。2026-10-18）
+- **iPhone の Web アプリは画面の向きを固定できない**（manifest の `orientation` も `screen.orientation.lock` も効かない）。横向きは `css/app.css` の最後の `@media (orientation: landscape) and (max-height: 600px)` で並べ方を変える（再生画面は左に曲名と操作、右にジャケット・歌詞・キュー。左右のカメラの出っぱりは `safe-area-inset-left/right` で避ける。2026-10-18）
 - `File` をそのまま IndexedDB に入れず、`arrayBuffer()` でコピーしてから保存する
 - **yt-dlp の 1080p の mp4 は映像が AV1 などで、iPhone によっては映像も音声も再生できない**（2026-10-17、Ken の iPhone で「この形式は iPhone で再生できないようです」）。そのため動画は取り込み時に音声だけの m4a にする（設定 `videoAsAudio`、最初はオン）。再生に失敗した動画の曲も、その場で音声だけにしてから再生し直す（`player.js` の `recoverFromError`）。設定にまとめて変えるボタンもある。音声が Opus の mp4 は取り出せない
 
