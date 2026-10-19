@@ -60,9 +60,15 @@ async function runLyricsQueue() {
     lyricsStatus.pending = lyricsQueue.length;
     const t = store.getTrack(trackId);
     if (!t || store.state.lyricsIds.has(trackId)) continue;
+    // ネットにつながっていないときは、あとで（つながったときに）探す
+    if (!navigator.onLine) {
+      if (!t.lyricsPending) await store.updateTrack(trackId, { lyricsPending: true });
+      continue;
+    }
     lyricsStatus.current = t.title;
     store.notify('lyricsQueue');
     try {
+      if (t.lyricsPending) await store.updateTrack(trackId, { lyricsPending: false });
       const r = await autoFetch(t, embedded);
       if (r.lyrics) await store.saveLyrics(trackId, r.lyrics);
       // 見つかった曲の名前から、曲名とアーティストの推測が逆だったと分かれば直す
@@ -216,4 +222,20 @@ export async function convertTrackToAudio(trackId) {
 
 export function isVideoTrack(t) {
   return !!t && (t.isVideo || /\.(mp4|m4v|mov)$/i.test(t.mediaFile || ''));
+}
+
+/** オフラインのときに追加して、歌詞を探せなかった曲を、もう一度探す（起動したときと、ネットにつながったとき） */
+export async function retryPendingLyrics() {
+  if (!navigator.onLine || !store.state.settings.autoFetchLyrics) return;
+  for (const t of store.state.tracks) {
+    if (!t.lyricsPending || store.state.lyricsIds.has(t.id)) continue;
+    let embedded = null;
+    try {
+      const blob = await files.get(t.id, t.mediaFile);
+      if (blob) embedded = (await readTags(blob)).lyrics || null;
+    } catch {
+      /* タグが読めなくても探す */
+    }
+    queueLyrics(t.id, embedded);
+  }
 }

@@ -60,6 +60,7 @@ Ken 個人用の音楽プレーヤーの **iPhone 版（Web アプリ / PWA）**
 - **iPhone の Web アプリは画面の向きを固定できない**（manifest の `orientation` も `screen.orientation.lock` も効かない）。横向きは `css/app.css` の最後の `@media (orientation: landscape) and (max-height: 600px)` で並べ方を変える（再生画面は右に曲名と操作（右手で押しやすいように）、左にジャケット・歌詞・キュー。左右のカメラの出っぱりは `safe-area-inset-left/right` で避ける。2026-10-18）
 - 歌詞が今の行を追わなくなることがあった（2026-10-18、Ken の報告。アプリを閉じると直る）。考えられる原因2つを直した：Ken の画面録画では、スクロールとぼかしは動くのに今の行の色（カラオケ）だけ光らなかった。iPhone が戻ったあと歌詞の中の色の変化を描き直さないことがあるとみて、戻ってきたとき（`visibilitychange` / `pageshow`）と再生画面を開くたびに歌詞を作り直すようにした（`np.panelFor = null`）。ほかに：毎フレームの処理（`loop`）で1回でも失敗すると次のフレームを頼まずに止まっていた → 先に次を頼み、失敗は握りつぶす。歌詞に触れた状態（`np.touching`）が、歌詞の外で指を離したときや touchcancel で残っていた → document で拾って戻す
 - `File` をそのまま IndexedDB に入れず、`arrayBuffer()` でコピーしてから保存する
+- オフライン：一度ネットで開けば、`sw.js` が保存したファイルでオフラインでも開いて再生できる（2026-10-19、ネットを切って開く・再生するのを Playwright で確かめた）。ネットが要るのは歌詞の検索（LRCLIB）、ブラウザのタブ、アプリの更新だけ。オフラインで追加した曲は歌詞を探さずに `lyricsPending` を付け、起動したときと `online` のときに探し直す（`importer.js` の `retryPendingLyrics`）。Service Worker は localhost でも登録する（試験のため）
 - **yt-dlp の 1080p の mp4 は映像が AV1 などで、iPhone によっては映像も音声も再生できない**（2026-10-17、Ken の iPhone で「この形式は iPhone で再生できないようです」）。そのため動画は取り込み時に音声だけの m4a にする（設定 `videoAsAudio`、最初はオン）。再生に失敗した動画の曲も、その場で音声だけにしてから再生し直す（`player.js` の `recoverFromError`）。設定にまとめて変えるボタンもある。音声が Opus の mp4 は取り出せない
 
 ## テスト

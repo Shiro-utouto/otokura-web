@@ -9,6 +9,7 @@ import { mountBrowser } from './ui/browser.js';
 import { mountSettings } from './ui/settings.js';
 import { runImport } from './ui/common.js';
 import { installFeel } from './ui/feel.js';
+import { retryPendingLyrics } from './importer.js';
 
 async function boot() {
   const app = document.getElementById('app');
@@ -73,6 +74,9 @@ async function boot() {
   show('library');
 
   await player.restoreSession();
+  // オフラインで追加した曲の歌詞を、つながったら探す
+  retryPendingLyrics();
+  window.addEventListener('online', () => retryPendingLyrics());
   if (store.state.issues.length) toast(store.state.issues[0], 6000);
 
   // 曲が入ったら、iPhone に「消さないで」と頼む
@@ -88,7 +92,7 @@ async function boot() {
   });
 }
 
-if ('serviceWorker' in navigator && location.protocol === 'https:') {
+if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
   navigator.serviceWorker.register('./sw.js').catch(() => {});
   // 新しい版が入ったら、次に開いたときに切り替わる
   navigator.serviceWorker.addEventListener('controllerchange', () => {
